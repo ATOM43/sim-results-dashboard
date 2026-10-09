@@ -45,7 +45,9 @@ class Project(Base):
     name: Mapped[str] = mapped_column(Text, unique=True)
 
     components: Mapped[list["Component"]] = relationship(back_populates="project")
-    revisions: Mapped[list["Revision"]] = relationship(back_populates="project")
+    revisions: Mapped[list["Revision"]] = relationship(
+        back_populates="project", order_by="Revision.sort_key"
+    )
 
 
 class Component(Base):

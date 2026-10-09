@@ -3,8 +3,11 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
-INPUTS_DIR = REPO_ROOT / "Inputs"
+INPUTS_DIR = Path(os.environ.get("SIM_INPUTS_DIR", REPO_ROOT / "Inputs"))
 DB_PATH = Path(os.environ.get("SIM_DB_PATH", REPO_ROOT / "backend" / "data" / "app.db"))
+
+# The input data has no project folder; every file belongs to this one project.
+DEFAULT_PROJECT_NAME = "Demo Product"
 
 # Engineering review rule: peak displacement at or below the cutoff must not exceed the limit.
 LIMIT_MM = 15.0
