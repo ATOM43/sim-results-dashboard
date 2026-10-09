@@ -16,14 +16,7 @@ from app.main import app
 from app.services import ingestion
 from app.services.ingestion import ingest_file, sync_folder
 
-REAL_INPUTS = Path(__file__).resolve().parents[2] / "Inputs"
 HEADER = "Frequency [Hz],Magnitude [mm]\n"
-
-
-@pytest.fixture
-def inputs(tmp_path: Path) -> Path:
-    """A private copy of the supplied data, so tests never modify the originals."""
-    return Path(shutil.copytree(REAL_INPUTS, tmp_path / "Inputs"))
 
 
 def count(session: Session, model: type) -> int:

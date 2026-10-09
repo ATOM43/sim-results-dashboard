@@ -148,6 +148,11 @@ class Result(Base):
         order_by="Sample.frequency_hz",
     )
 
+    @property
+    def margin_mm(self) -> float:
+        """Negative means over the limit."""
+        return self.limit_mm - self.peak_magnitude_mm
+
 
 class Sample(Base):
     __tablename__ = "samples"
