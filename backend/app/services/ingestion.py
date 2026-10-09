@@ -14,6 +14,7 @@ from app.config import DEFAULT_PROJECT_NAME
 from app.db import crud
 from app.db.models import Component, Project, Result, Sample, SourceFile, utcnow
 from app.services.assessment import AssessmentError, assess
+from app.services.comparison import grid_differences
 from app.services.parsing import CsvValidationError, parse_csv
 
 REVISION_DIR = re.compile(r"rev(\d+)")
@@ -160,23 +161,13 @@ def _update_grid_warnings(session: Session, project_name: str) -> dict[str, list
 
     warnings: dict[str, list[str]] = {}
     for component, results in by_component.items():
-        counts = Counter(frozenset(grids[result.id]) for result in results)
-        top = max(counts.values())
-        common = {grid for grid, count in counts.items() if count == top}
-        # Without a single most-used grid there is nothing to name the differences against.
-        reference = next(iter(common)) if len(common) == 1 else None
-        for result in results:
-            grid = frozenset(grids[result.id])
+        differences = grid_differences([grids[result.id] for result in results])
+        for result, difference in zip(results, differences, strict=True):
             warning = None
-            if reference is None and len(counts) > 1:
-                warning = f"{GRID_WARNING} {component.name}"
-            elif reference is not None and grid != reference:
-                details = [
-                    f"{verb} {', '.join(f'{frequency:g} Hz' for frequency in sorted(points))}"
-                    for verb, points in (("has", grid - reference), ("lacks", reference - grid))
-                    if points
-                ]
-                warning = f"{GRID_WARNING} {component.name}: {', '.join(details)}"
+            if difference is not None:
+                warning = f"{GRID_WARNING} {component.name}" + (
+                    f": {difference}" if difference else ""
+                )
             source_file = result.source_file
             kept = [
                 warning

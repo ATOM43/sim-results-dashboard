@@ -1,15 +1,9 @@
-from .common import Schema, Verdict
+from .common import PeakResult, Schema
 
 __all__ = ["ComponentRevision", "RevisionResult"]
 
 
-class RevisionResult(Schema):
-    result_id: int
-    peak_magnitude_mm: float
-    peak_frequency_hz: float
-    verdict: Verdict
-    margin_mm: float
-    delta_vs_previous_mm: float | None
+class RevisionResult(PeakResult):
     source_status: str
     warnings: list[str]
 

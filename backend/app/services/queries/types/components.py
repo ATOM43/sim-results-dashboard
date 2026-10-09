@@ -1,16 +1,12 @@
 from dataclasses import dataclass
 
+from .common import PeakResult
+
 __all__ = ["RevisionEntry", "RevisionResult"]
 
 
 @dataclass(frozen=True)
-class RevisionResult:
-    result_id: int
-    peak_magnitude_mm: float
-    peak_frequency_hz: float
-    verdict: str
-    margin_mm: float
-    delta_vs_previous_mm: float | None
+class RevisionResult(PeakResult):
     source_status: str
     warnings: list[str]
 

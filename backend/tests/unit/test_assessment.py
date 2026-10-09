@@ -5,7 +5,7 @@ import pytest
 from app.services.assessment import AssessmentError, assess
 from app.services.parsing import parse_csv
 
-INPUTS = Path(__file__).resolve().parents[2] / "Inputs"
+INPUTS = Path(__file__).resolve().parents[3] / "Inputs"
 
 
 def test_peak_exactly_at_limit_passes():

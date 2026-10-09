@@ -1,17 +1,6 @@
-from .common import ResultSource, SampleOut, Schema, Verdict
+from .common import NamedRef, ResultSource, RevisionRef, SampleOut, Schema, Verdict
 
-__all__ = ["NamedRef", "ResultDetail", "RevisionRef"]
-
-
-class NamedRef(Schema):
-    id: int
-    name: str
-
-
-class RevisionRef(Schema):
-    id: int
-    label: str
-    sort_key: int
+__all__ = ["ResultDetail"]
 
 
 class ResultDetail(Schema):

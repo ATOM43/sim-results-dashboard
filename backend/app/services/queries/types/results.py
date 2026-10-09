@@ -1,28 +1,8 @@
 from dataclasses import dataclass
 
-from .common import ResultSource
+from .common import NamedRef, ResultSource, RevisionRef, SamplePoint
 
-__all__ = ["NamedRef", "ResultDetail", "RevisionRef", "SamplePoint"]
-
-
-@dataclass(frozen=True)
-class NamedRef:
-    id: int
-    name: str
-
-
-@dataclass(frozen=True)
-class RevisionRef:
-    id: int
-    label: str
-    sort_key: int
-
-
-@dataclass(frozen=True)
-class SamplePoint:
-    frequency_hz: float
-    magnitude_mm: float
-    assessed: bool
+__all__ = ["ResultDetail"]
 
 
 @dataclass(frozen=True)

@@ -5,7 +5,7 @@ import pytest
 from app.services.assessment import assess
 from app.services.parsing import CsvValidationError, parse_csv
 
-INPUTS = Path(__file__).resolve().parents[2] / "Inputs"
+INPUTS = Path(__file__).resolve().parents[3] / "Inputs"
 HEADER = b"Frequency [Hz],Magnitude [mm]\n"
 NAME = "rev2/Lens.csv"
 

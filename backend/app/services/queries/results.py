@@ -43,14 +43,7 @@ def get_result(session: Session, result_id: int) -> ResultDetail | None:
         assess_max_hz=result.assess_max_hz,
         verdict=result.verdict,
         margin_mm=round(result.margin_mm, 6),
-        samples=[
-            SamplePoint(
-                frequency_hz=sample.frequency_hz,
-                magnitude_mm=sample.magnitude_mm,
-                assessed=sample.frequency_hz <= result.assess_max_hz,
-            )
-            for sample in result.samples
-        ],
+        samples=sample_points(result),
         source=ResultSource(
             source_key=source.source_key,
             status=source.status,
@@ -58,3 +51,15 @@ def get_result(session: Session, result_id: int) -> ResultDetail | None:
             last_imported_at=source.last_imported_at,
         ),
     )
+
+
+def sample_points(result: Result) -> list[SamplePoint]:
+    """The curve in frequency order (`Result.samples` is ordered)."""
+    return [
+        SamplePoint(
+            frequency_hz=sample.frequency_hz,
+            magnitude_mm=sample.magnitude_mm,
+            assessed=sample.frequency_hz <= result.assess_max_hz,
+        )
+        for sample in result.samples
+    ]
