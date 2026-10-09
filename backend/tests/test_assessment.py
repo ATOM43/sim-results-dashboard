@@ -1,9 +1,9 @@
-import csv
 from pathlib import Path
 
 import pytest
 
 from app.services.assessment import AssessmentError, assess
+from app.services.parsing import parse_csv
 
 INPUTS = Path(__file__).resolve().parents[2] / "Inputs"
 
@@ -60,13 +60,6 @@ def test_margin_sign_follows_verdict():
     assert assess([(10.0, 13.0)]).margin_mm == pytest.approx(2.0)
 
 
-def read_samples(path: Path) -> list[tuple[float, float]]:
-    with path.open(newline="") as f:
-        rows = csv.reader(f)
-        next(rows)  # header
-        return [(float(frequency), float(magnitude)) for frequency, magnitude in rows]
-
-
 @pytest.mark.parametrize(
     ("file", "peak_mm", "peak_hz", "verdict"),
     [
@@ -82,7 +75,7 @@ def read_samples(path: Path) -> list[tuple[float, float]]:
     ],
 )
 def test_supplied_csvs(file: str, peak_mm: float, peak_hz: float, verdict: str):
-    result = assess(read_samples(INPUTS / file))
+    result = assess(parse_csv((INPUTS / file).read_bytes(), file).samples)
 
     assert result.peak_magnitude_mm == pytest.approx(peak_mm)
     assert result.peak_frequency_hz == pytest.approx(peak_hz)
