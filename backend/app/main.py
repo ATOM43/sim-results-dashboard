@@ -1,10 +1,20 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app import config
 from app.api import router
+from app.db.base import init_db
 
-app = FastAPI(title="Simulation Results Dashboard")
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    init_db()
+    yield
+
+
+app = FastAPI(title="Simulation Results Dashboard", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

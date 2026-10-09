@@ -1,4 +1,4 @@
-.PHONY: install import dev dev-api dev-web test lint
+.PHONY: install import dev dev-api dev-web test lint format
 
 install:
 	cd backend && uv sync
@@ -22,3 +22,7 @@ test:
 lint:
 	cd backend && uv run ruff check . && uv run ruff format --check . && uv run pyright
 	cd frontend && npm run lint && npm run format:check
+
+format:
+	cd backend && uv run ruff format .
+	cd frontend && npm run format

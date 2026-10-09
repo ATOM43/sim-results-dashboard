@@ -12,12 +12,13 @@ Web dashboard for reviewing engineering simulation results, comparing revisions 
 
 Requires `uv`, Node.js and `make`.
 
-| Command        | What it does                                  |
-| -------------- | --------------------------------------------- |
-| `make install` | Install backend and frontend dependencies     |
+| Command        | What it does                                   |
+| -------------- | ---------------------------------------------- |
+| `make install` | Install backend and frontend dependencies      |
 | `make import`  | Import the CSVs in `Inputs/` into the database |
-| `make dev`     | Run the API (port 8000) and the web app       |
-| `make test`    | Run the backend tests                         |
-| `make lint`    | ruff, oxlint and Prettier checks              |
+| `make dev`     | Run the API (port 8000) and the web app        |
+| `make test`    | Run the backend tests                          |
+| `make lint`    | ruff, oxlint and Prettier checks               |
+| `make format`  | Apply ruff format and Prettier                 |
 
 Design decisions are recorded in [DECISIONS.md](DECISIONS.md).
