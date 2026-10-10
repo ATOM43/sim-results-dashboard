@@ -36,7 +36,9 @@ def _details(session: Session, query) -> list[DemandDetail]:
     results = {
         (result.component_id, result.revision_id): result
         for result in session.scalars(
-            select(Result).where(Result.component_id.in_({d.component_id for d in demands}))
+            select(Result)
+            .where(Result.component_id.in_({d.component_id for d in demands}))
+            .options(joinedload(Result.source_file))
         )
     }
     return [_detail(demand, results) for demand in demands]
@@ -67,6 +69,8 @@ def _detail(demand: Demand, results: dict[tuple[int, int], Result]) -> DemandDet
             )
         )
     latest = next((entry for entry in reversed(history) if entry.result_id is not None), None)
+    # The origin result belongs to the demand's component, so it is among the loaded results.
+    origin = next((r for r in results.values() if r.id == demand.origin_result_id), None)
     return DemandDetail(
         id=demand.id,
         description=demand.description,
@@ -80,6 +84,8 @@ def _detail(demand: Demand, results: dict[tuple[int, int], Result]) -> DemandDet
         origin_frequency_hz=demand.origin_frequency_hz,
         origin_limit_mm=demand.origin_limit_mm,
         origin_assess_max_hz=demand.origin_assess_max_hz,
+        origin_source_key=None if origin is None else origin.source_file.source_key,
+        created_at=demand.created_at,
         history=history,
         latest_result=latest,
         # Only a flag: nothing ever changes a demand's status automatically.

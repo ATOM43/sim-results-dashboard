@@ -1,3 +1,4 @@
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -56,6 +57,8 @@ def test_create_from_fail_result_freezes_the_finding(loaded: TestClient):
         pytest.approx(15.0),
         pytest.approx(50.0),
     ]
+    assert demand["origin_source_key"] == "rev1/Bracket.csv"
+    assert datetime.fromisoformat(demand["created_at"]).tzinfo is not None
     assert get(loaded, f"/api/demands/{demand['id']}") == demand
 
 
@@ -82,6 +85,8 @@ def test_create_manual(loaded: TestClient):
     demand = response.json()
     assert demand["component"] == {"id": lens, "name": "Lens"}
     assert [demand[f] for f in ORIGIN_FIELDS] == ["manual", None, None, None, None, None, None]
+    assert demand["origin_source_key"] is None
+    assert datetime.fromisoformat(demand["created_at"]).tzinfo is not None
     # No origin revision: history starts at the earliest revision.
     assert [e["revision_label"] for e in demand["history"]] == ["rev1", "rev2", "rev3"]
 

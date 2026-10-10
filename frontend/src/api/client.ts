@@ -22,14 +22,21 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
     );
   }
   if (!response.ok) {
-    // FastAPI puts a string in `detail` for HTTPException; validation errors use a list, which falls through.
+    // FastAPI puts a string in `detail` for HTTPException and a list of {loc, msg} for validation errors.
     const body: unknown = await response.json().catch(() => null);
     const detail = (body as { detail?: unknown } | null)?.detail;
     throw new ApiError(
       response.status,
       typeof detail === "string"
         ? detail
-        : `${response.status} ${response.statusText}`,
+        : Array.isArray(detail)
+          ? detail
+              .map(
+                (e: { loc: unknown[]; msg: string }) =>
+                  `${e.loc.slice(1).join(".")}: ${e.msg}`,
+              )
+              .join("; ")
+          : `${response.status} ${response.statusText}`,
     );
   }
   return (await response.json()) as T;

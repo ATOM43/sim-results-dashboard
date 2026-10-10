@@ -120,7 +120,7 @@ it("defaults to the first component and its latest revision with a result", asyn
   ).toBeVisible();
   expect(
     screen.getByRole("button", { name: "+ Create demand from this finding" }),
-  ).toBeDisabled();
+  ).toBeEnabled();
   // the thumbnail never loads in jsdom, so the initial-letter placeholder shows
   expect(screen.getByText("B")).toBeVisible();
 });

@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { Link } from "react-router";
 import { componentImageUrl } from "@/api/components";
+import { CreateDemandDialog } from "@/demands/CreateDemandDialog";
 import { hz, mm, signedMm } from "@/shared/format";
 import { useProjects, useSelectedProject } from "@/shared/queries";
 import { EmptyState, ErrorState, LoadingState } from "@/shared/states";
@@ -92,6 +94,7 @@ export function RevisionsPage() {
   const [project] = useSelectedProject();
   const [componentParam, setComponent] = useUrlState("component");
   const [revParam, setRev] = useUrlState("rev");
+  const [creating, setCreating] = useState(false);
 
   const components = useComponents(project?.id);
   const component =
@@ -152,10 +155,17 @@ export function RevisionsPage() {
             </Link>
           </Button>
           {revision?.result?.verdict === "FAIL" && (
-            // shortcut: inert until the demand dialog exists, wire onClick in T15
-            <Button size="lg" disabled>
-              + Create demand from this finding
-            </Button>
+            <>
+              <Button size="lg" onClick={() => setCreating(true)}>
+                + Create demand from this finding
+              </Button>
+              <CreateDemandDialog
+                open={creating}
+                onOpenChange={setCreating}
+                project={project}
+                resultId={revision.result.result_id}
+              />
+            </>
           )}
         </div>
       </div>

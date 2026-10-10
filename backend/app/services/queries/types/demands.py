@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime
 
 from .common import NamedRef
 
@@ -28,6 +29,8 @@ class DemandDetail:
     origin_frequency_hz: float | None
     origin_limit_mm: float | None
     origin_assess_max_hz: float | None
+    origin_source_key: str | None
+    created_at: datetime
     history: list[DemandHistoryEntry]
     latest_result: DemandHistoryEntry | None
     latest_passes_but_open: bool
