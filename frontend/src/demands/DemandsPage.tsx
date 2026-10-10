@@ -5,6 +5,7 @@ import { useProjectDemands } from "@/compare/queries";
 import { useComponents } from "@/revisions/queries";
 import { decimal, mm, signedMm } from "@/shared/format";
 import { useProjects, useSelectedProject } from "@/shared/queries";
+import { RetryButton } from "@/shared/RetryButton";
 import { EmptyState, ErrorState, LoadingState } from "@/shared/states";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
@@ -68,7 +69,10 @@ export function DemandsPage() {
   const all = useProjectDemands(project?.id);
   const list = useDemandList(project?.id, status, componentId);
 
-  if (projects.isError) return null; // the Shell banner already reports it
+  if (projects.isError)
+    return (
+      <ErrorState message={projects.error.message} action={<RetryButton />} />
+    );
   if (projects.isSuccess && !project)
     return (
       <EmptyState

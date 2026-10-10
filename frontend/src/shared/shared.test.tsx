@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { FrequencyChart } from "./FrequencyChart";
 import { hz, mm, signedMm } from "./format";
 import { VerdictBadge } from "./VerdictBadge";
@@ -34,6 +34,16 @@ describe("VerdictBadge", () => {
       render(<VerdictBadge verdict={verdict} />).container.querySelector("svg")!
         .innerHTML;
     expect(icon("PASS")).not.toBe(icon("FAIL"));
+  });
+
+  it("styles PASS and FAIL differently, on top of the text and icon", () => {
+    render(<VerdictBadge verdict="PASS" />);
+    render(<VerdictBadge verdict="FAIL" />);
+    const pass = screen.getByText("PASS");
+    const fail = screen.getByText("FAIL");
+    expect(pass).toHaveClass("text-success-foreground");
+    expect(fail).not.toHaveClass("text-success-foreground");
+    expect(fail).toHaveAttribute("data-variant", "destructive");
   });
 });
 
@@ -114,5 +124,90 @@ describe("FrequencyChart", () => {
     expect(
       container.querySelectorAll(".recharts-reference-dot circle"),
     ).toHaveLength(2);
+  });
+
+  describe("zoom toggle", () => {
+    const dotX = (container: HTMLElement) =>
+      [...container.querySelectorAll("circle[data-assessed]")].map((c) =>
+        Number(c.getAttribute("cx")),
+      );
+    const range = (name: string) => screen.getByRole("radio", { name });
+
+    it("starts at 0–200 Hz and stretches 0–50 Hz over the plot when zoomed", () => {
+      const { container } = render(<FrequencyChart series={series} />);
+      const width = Number(
+        container.querySelector("svg.recharts-surface")!.getAttribute("width"),
+      );
+      expect(range("0–200 Hz")).toBeChecked();
+      const full = dotX(container);
+      // every sample, up to 120 Hz, is inside the plot
+      expect(Math.max(...full)).toBeLessThan(width);
+
+      fireEvent.click(range("Zoom 0–50 Hz"));
+      expect(range("Zoom 0–50 Hz")).toBeChecked();
+      expect(range("0–200 Hz")).not.toBeChecked();
+      const zoomed = dotX(container);
+      // the same span of frequencies now covers four times the width
+      expect(zoomed[2] - zoomed[0]).toBeCloseTo((full[2] - full[0]) * 4);
+      // the 50 Hz sample is the last one inside the plot; 120 Hz is off to the right
+      expect(zoomed[2]).toBeLessThan(width);
+      expect(zoomed[4]).toBeGreaterThan(width);
+
+      fireEvent.click(range("0–200 Hz"));
+      expect(dotX(container)).toEqual(full);
+    });
+
+    it("keeps the zoom when the active range is pressed again", () => {
+      const { container } = render(<FrequencyChart series={series} />);
+      const full = dotX(container);
+      fireEvent.click(range("0–200 Hz"));
+      expect(range("0–200 Hz")).toBeChecked();
+      expect(dotX(container)).toEqual(full);
+    });
+
+    it("zooms to the assessed range it was given", () => {
+      render(<FrequencyChart series={series} assessMaxHz={80} />);
+      expect(range("Zoom 0–80 Hz")).toBeInTheDocument();
+    });
+  });
+
+  describe("tooltip", () => {
+    afterEach(() => vi.restoreAllMocks());
+
+    it("names the frequency, the value and whether the sample is assessed", async () => {
+      // jsdom lays nothing out; Recharts needs a chart box to turn the pointer into a sample.
+      const box = { x: 0, y: 0, left: 0, top: 0, right: 320, bottom: 200 };
+      vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
+        ...box,
+        width: 320,
+        height: 200,
+        toJSON: () => box,
+      });
+      vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockReturnValue(
+        320,
+      );
+      vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(
+        200,
+      );
+      const { container } = render(<FrequencyChart series={series} />);
+      const chart = container.querySelector(".recharts-wrapper")!;
+      const dots = container.querySelectorAll("circle[data-assessed]");
+      const hover = (dot: Element) =>
+        fireEvent.mouseMove(chart, {
+          clientX: Number(dot.getAttribute("cx")),
+          clientY: Number(dot.getAttribute("cy")),
+        });
+      expect(screen.queryByText(/assessed$/)).not.toBeInTheDocument();
+
+      hover(dots[1]);
+      expect(await screen.findByText("37.8 Hz")).toBeInTheDocument();
+      expect(screen.getByText("Rev B: 22 mm · assessed")).toBeInTheDocument();
+
+      hover(dots[4]);
+      expect(await screen.findByText("120 Hz")).toBeInTheDocument();
+      expect(
+        screen.getByText("Rev B: 30 mm · not assessed"),
+      ).toBeInTheDocument();
+    });
   });
 });

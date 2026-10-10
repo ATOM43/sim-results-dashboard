@@ -1,5 +1,6 @@
 import { CircleAlert } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
+import type { ReactNode } from "react";
+import { Alert, AlertAction, AlertDescription, AlertTitle } from "./ui/alert";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "./ui/empty";
 import { Skeleton } from "./ui/skeleton";
 
@@ -32,15 +33,19 @@ export function EmptyState({
 export function ErrorState({
   title = "Something went wrong",
   message,
+  action,
 }: {
   title?: string;
   message: string;
+  /** For example a <RetryButton />. */
+  action?: ReactNode;
 }) {
   return (
     <Alert variant="destructive">
       <CircleAlert aria-hidden />
       <AlertTitle>{title}</AlertTitle>
       <AlertDescription>{message}</AlertDescription>
+      {action && <AlertAction>{action}</AlertAction>}
     </Alert>
   );
 }

@@ -1,6 +1,7 @@
 import { Check } from "lucide-react";
 import { seriesColor } from "@/shared/seriesStyle";
 import { useProjects, useSelectedProject } from "@/shared/queries";
+import { RetryButton } from "@/shared/RetryButton";
 import { EmptyState, ErrorState, LoadingState } from "@/shared/states";
 import {
   Select,
@@ -40,7 +41,10 @@ export function ComparePage() {
       : undefined;
   const comparison = useComparison(component?.id, requested, baseline);
 
-  if (projects.isError) return null; // the Shell banner already reports it
+  if (projects.isError)
+    return (
+      <ErrorState message={projects.error.message} action={<RetryButton />} />
+    );
   if (projects.isSuccess && !project)
     return (
       <EmptyState

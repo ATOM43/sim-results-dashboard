@@ -1,5 +1,5 @@
 import { NavLink, useSearchParams } from "react-router";
-import { useOpenDemandCount } from "./queries";
+import { useApiError, useOpenDemandCount } from "./queries";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
@@ -11,7 +11,9 @@ const pages = [
 ];
 
 export function Nav() {
-  const openDemands = useOpenDemandCount().data;
+  const count = useOpenDemandCount().data;
+  // Hidden rather than stale while the API is failing.
+  const openDemands = useApiError() ? undefined : count;
   // Only the project follows you between pages; page-specific params (component, rev) do not.
   const project = useSearchParams()[0].get("project");
   const search = project ? `?project=${encodeURIComponent(project)}` : "";

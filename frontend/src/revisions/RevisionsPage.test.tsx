@@ -6,7 +6,7 @@ import { RevisionsPage } from "./RevisionsPage";
 
 const peak = { peak_magnitude_mm: 22, peak_frequency_hz: 37.8 };
 const fail = { ...peak, verdict: "FAIL" };
-const api: Record<string, unknown> = {
+const base: Record<string, unknown> = {
   "/api/projects": [{ id: 1, name: "Demo" }],
   "/api/projects/1/components": [
     {
@@ -72,7 +72,8 @@ function Location() {
   return <output data-testid="search">{search}</output>;
 }
 
-function renderAt(url: string) {
+function renderAt(url: string, overrides: Record<string, unknown> = {}) {
+  const api = { ...base, ...overrides };
   vi.stubGlobal("fetch", async (input: string) => {
     const path = input.replace(/^https?:\/\/[^/]+/, "");
     return path in api
@@ -123,7 +124,26 @@ it("defaults to the first component and its latest revision with a result", asyn
   ).toBeEnabled();
   // the thumbnail never loads in jsdom, so the initial-letter placeholder shows
   expect(screen.getByText("B")).toBeVisible();
+  // the source file imported cleanly, so nothing marks the result as stale
+  expect(screen.queryByText(/^Latest import:/)).not.toBeInTheDocument();
 });
+
+it.each(["failed", "missing"])(
+  "marks a result as stale when its source file is %s in the latest import",
+  async (status) => {
+    const result = base["/api/results/4"] as { source: object };
+    renderAt("/revisions", {
+      "/api/results/4": { ...result, source: { ...result.source, status } },
+    });
+    const marker = await screen.findByText(/^Latest import:/);
+    expect(marker).toHaveTextContent(
+      `Latest import: rev1/Bracket.csv ${status}. This result is from the last version that imported cleanly.`,
+    );
+    expect(marker).toHaveRole("alert");
+    // the kept verdict still shows, next to the marker
+    expect(screen.getByText(/exceeds the 15.0 mm limit/)).toBeVisible();
+  },
+);
 
 it("says a revision has no data instead of showing a verdict", async () => {
   renderAt("/revisions?component=1&rev=rev3");

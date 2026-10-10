@@ -1,4 +1,9 @@
-import { useImportStatus, useProjects, useSelectedProject } from "./queries";
+import {
+  useApiError,
+  useImportStatus,
+  useProjects,
+  useSelectedProject,
+} from "./queries";
 import { Badge } from "./ui/badge";
 import {
   Dialog,
@@ -49,10 +54,12 @@ function ProjectSelect() {
 
 function ImportBadge() {
   const { data, isPending } = useImportStatus();
-  if (!data) {
+  // A cached report is not shown while the API is failing: it may no longer be true.
+  const down = useApiError() !== undefined;
+  if (!data || down) {
     return (
       <Badge variant="outline">
-        Import: {isPending ? "loading…" : "unavailable"}
+        Import: {isPending && !down ? "loading…" : "unavailable"}
       </Badge>
     );
   }

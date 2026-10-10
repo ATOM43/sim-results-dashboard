@@ -12,6 +12,13 @@ export function useImportStatus() {
   return useQuery({ queryKey: ["import-status"], queryFn: getImportStatus });
 }
 
+/** The error of the first failing header query: while set, the header data on screen cannot be trusted. */
+export function useApiError() {
+  return [useProjects(), useImportStatus(), useOpenDemandCount()].find(
+    (query) => query.isError,
+  )?.error;
+}
+
 /** Open demands in the selected project. Idle until a project is known. */
 export function useOpenDemandCount() {
   const [project] = useSelectedProject();

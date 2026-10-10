@@ -4,6 +4,7 @@ import { componentImageUrl } from "@/api/components";
 import { CreateDemandDialog } from "@/demands/CreateDemandDialog";
 import { hz, mm, signedMm } from "@/shared/format";
 import { useProjects, useSelectedProject } from "@/shared/queries";
+import { RetryButton } from "@/shared/RetryButton";
 import { EmptyState, ErrorState, LoadingState } from "@/shared/states";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/ui/avatar";
 import { Badge } from "@/shared/ui/badge";
@@ -108,7 +109,10 @@ export function RevisionsPage() {
     revisions.data?.findLast((r) => r.result) ??
     revisions.data?.at(-1);
 
-  if (projects.isError) return null; // the Shell banner already reports it
+  if (projects.isError)
+    return (
+      <ErrorState message={projects.error.message} action={<RetryButton />} />
+    );
   if (projects.isSuccess && !project)
     return (
       <EmptyState
