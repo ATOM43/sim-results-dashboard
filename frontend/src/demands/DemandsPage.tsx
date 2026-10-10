@@ -3,7 +3,7 @@ import { Link, useSearchParams } from "react-router";
 import type { Demand, DemandStatus } from "@/api/demands";
 import { useProjectDemands } from "@/compare/queries";
 import { useComponents } from "@/revisions/queries";
-import { decimal, mm, signedMm } from "@/shared/format";
+import { mm, signedMm } from "@/shared/format";
 import { useProjects, useSelectedProject } from "@/shared/queries";
 import { RetryButton } from "@/shared/RetryButton";
 import { EmptyState, ErrorState, LoadingState } from "@/shared/states";
@@ -196,7 +196,6 @@ export function DemandsPage() {
                   <TableHead>Description</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Origin finding</TableHead>
-                  <TableHead>Result per revision</TableHead>
                   <TableHead>Latest</TableHead>
                   <TableHead>Trace</TableHead>
                 </TableRow>
@@ -250,26 +249,6 @@ export function DemandsPage() {
                         ) : (
                           "Manual"
                         )}
-                      </TableCell>
-                      <TableCell className={`${cell} min-w-44`}>
-                        <div className="flex flex-wrap gap-1">
-                          {demand.history.map((entry) => (
-                            <Badge
-                              key={entry.revision_id}
-                              variant={
-                                entry.verdict === "FAIL"
-                                  ? "destructive"
-                                  : "outline"
-                              }
-                              className={`font-mono ${entry.verdict === "PASS" ? pass : ""}`}
-                            >
-                              {entry.revision_label}{" "}
-                              {entry.peak_magnitude_mm === null
-                                ? "no data"
-                                : `${entry.verdict === "PASS" ? "✓" : "×"} ${decimal(entry.peak_magnitude_mm)}`}
-                            </Badge>
-                          ))}
-                        </div>
                       </TableCell>
                       <TableCell className={`${cell} min-w-44`}>
                         {latest?.verdict &&

@@ -374,3 +374,56 @@ it("shows a validation error in the detail panel when a save is refused", async 
   );
   expect(screen.queryByText("Saved.")).not.toBeInTheDocument();
 });
+
+it("shows only the latest result in the row and the full history in the drawer", async () => {
+  const history = [
+    { revision_id: 1, revision_label: "rev1", result_id: 4, ...fail },
+    {
+      revision_id: 2,
+      revision_label: "rev2",
+      result_id: 5,
+      ...fail,
+      peak_magnitude_mm: 18.5,
+    },
+    {
+      revision_id: 3,
+      revision_label: "rev3",
+      result_id: 6,
+      ...fail,
+      peak_magnitude_mm: 13.8,
+      verdict: "PASS",
+    },
+  ];
+  Object.assign(demands[1], {
+    history,
+    latest_result: history[2],
+    latest_passes_but_open: true,
+  });
+  renderAt("/demands?project=1");
+  const row = await screen.findByRole("row", { name: /^D-1/ });
+  expect(
+    screen.queryByRole("columnheader", { name: "Result per revision" }),
+  ).not.toBeInTheDocument();
+  // origin finding and latest result; the revisions in between are left to the drawer
+  expect(within(row).getByText("rev1")).toBeVisible();
+  expect(within(row).getByText("rev3")).toBeVisible();
+  expect(within(row).getByText("13.8 mm")).toBeVisible();
+  expect(within(row).getByText("PASS")).toBeVisible();
+  expect(within(row).queryByText(/rev2|18\.5/)).not.toBeInTheDocument();
+  expect(
+    within(row).getByText("Passes now · awaiting engineering review"),
+  ).toBeVisible();
+
+  fireEvent.click(within(row).getByText("Stiffen the bracket"));
+  const drawer = await screen.findByRole("dialog");
+  const trace = (await within(drawer).findAllByRole("listitem")).map(
+    (item) => item.textContent,
+  );
+  expect(trace).toHaveLength(3);
+  expect(trace[0]).toMatch(/^rev1FAIL22\.0 mm/);
+  expect(trace[1]).toMatch(/^rev2FAIL18\.5 mm/);
+  expect(trace[2]).toMatch(/^rev3PASS13\.8 mm/);
+  expect(
+    within(drawer).getByText(/The latest result passes, but the demand stays/),
+  ).toBeVisible();
+});

@@ -91,6 +91,18 @@ function LinkedDemands({
   ));
 }
 
+/** Brings the selected revision into its scrolling list. Not scrollIntoView: that would also scroll the page. */
+function keepInList(button: HTMLElement | null) {
+  const list = button?.parentElement;
+  if (!button || !list) return;
+  const top = button.offsetTop;
+  if (
+    top < list.scrollTop ||
+    top + button.offsetHeight > list.scrollTop + list.clientHeight
+  )
+    list.scrollTop = top - (list.clientHeight - button.offsetHeight) / 2;
+}
+
 export function RevisionsPage() {
   const projects = useProjects();
   const [project] = useSelectedProject();
@@ -229,56 +241,64 @@ export function RevisionsPage() {
             <h2 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
               Revisions of {component.name}
             </h2>
-            {revisions.data.map((entry, index) => {
-              const { revision_id, revision_label, result } = entry;
-              // The API's change is against the previous revision that has a result, so name that one.
-              const previousLabel = revisions.data
-                .slice(0, index)
-                .findLast((r) => r.result)?.revision_label;
-              return (
-                <button
-                  key={revision_id}
-                  type="button"
-                  aria-pressed={revision_id === revision.revision_id}
-                  onClick={() => setRev(revision_label)}
-                  className={`${cardButton} block w-full`}
-                >
-                  <Card size="sm" className={selectedCard}>
-                    <CardContent className="space-y-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-base font-semibold">
-                          {revision_label}
-                        </span>
-                        {result && <VerdictBadge verdict={result.verdict} />}
-                      </div>
-                      {result ? (
-                        <>
-                          <p>
-                            <span className="font-mono">
-                              {mm(result.peak_magnitude_mm)}
-                            </span>{" "}
-                            <span className="text-muted-foreground">
-                              at{" "}
+            {/* relative: offsetTop of the buttons is measured from the list. -m-1 p-1: room for the selected ring inside the scroll clip. */}
+            <div className="relative -m-1 max-h-[70vh] space-y-3 overflow-y-auto p-1">
+              {revisions.data.map((entry, index) => {
+                const { revision_id, revision_label, result } = entry;
+                // The API's change is against the previous revision that has a result, so name that one.
+                const previousLabel = revisions.data
+                  .slice(0, index)
+                  .findLast((r) => r.result)?.revision_label;
+                return (
+                  <button
+                    key={revision_id}
+                    type="button"
+                    aria-pressed={revision_id === revision.revision_id}
+                    ref={
+                      revision_id === revision.revision_id
+                        ? keepInList
+                        : undefined
+                    }
+                    onClick={() => setRev(revision_label)}
+                    className={`${cardButton} block w-full`}
+                  >
+                    <Card size="sm" className={selectedCard}>
+                      <CardContent className="space-y-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-base font-semibold">
+                            {revision_label}
+                          </span>
+                          {result && <VerdictBadge verdict={result.verdict} />}
+                        </div>
+                        {result ? (
+                          <>
+                            <p>
                               <span className="font-mono">
-                                {hz(result.peak_frequency_hz)}
+                                {mm(result.peak_magnitude_mm)}
+                              </span>{" "}
+                              <span className="text-muted-foreground">
+                                at{" "}
+                                <span className="font-mono">
+                                  {hz(result.peak_frequency_hz)}
+                                </span>
                               </span>
-                            </span>
+                            </p>
+                            <Change
+                              delta={result.delta_vs_previous_mm}
+                              previous={previousLabel}
+                            />
+                          </>
+                        ) : (
+                          <p className="text-muted-foreground">
+                            No data for {revision_label}
                           </p>
-                          <Change
-                            delta={result.delta_vs_previous_mm}
-                            previous={previousLabel}
-                          />
-                        </>
-                      ) : (
-                        <p className="text-muted-foreground">
-                          No data for {revision_label}
-                        </p>
-                      )}
-                    </CardContent>
-                  </Card>
-                </button>
-              );
-            })}
+                        )}
+                      </CardContent>
+                    </Card>
+                  </button>
+                );
+              })}
+            </div>
           </section>
 
           <div className="min-w-0 space-y-4">

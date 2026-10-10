@@ -78,11 +78,19 @@ function Delta({
   );
 }
 
-export function ComparisonView({ comparison }: { comparison: Comparison }) {
+/** `overlay`: the labels drawn in the chart and its legend; the summary and the metric table cover every revision. */
+export function ComparisonView({
+  comparison,
+  overlay,
+}: {
+  comparison: Comparison;
+  overlay: string[];
+}) {
   const { component, revisions: entries } = comparison;
   const baseline = comparison.baseline_revision_label;
-  // Chart series are the revisions that have a result; `style` maps a label to its line.
-  const withResult = entries.filter((entry) => entry.result);
+  const shown = entries.filter((e) => overlay.includes(e.revision_label));
+  // Chart series are the shown revisions that have a result; `style` maps a label to its line.
+  const withResult = shown.filter((entry) => entry.result);
   const style = new Map(
     withResult.map((entry, index) => [
       entry.revision_label,
@@ -124,47 +132,50 @@ export function ComparisonView({ comparison }: { comparison: Comparison }) {
               },
             }))}
           />
-          <section className="space-y-3">
+          <section className="min-w-0 space-y-3">
             <h2 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
               Legend · assessed peak
             </h2>
-            {entries.map(({ revision_id, revision_label, result }) => (
-              <Card key={revision_id} size="sm">
-                <CardContent className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    {result && (
-                      <svg aria-hidden width="28" height="4">
-                        <line
-                          x2="28"
-                          y1="2"
-                          y2="2"
-                          strokeWidth="2"
-                          {...style.get(revision_label)}
-                        />
-                      </svg>
-                    )}
-                    <span className="text-base font-semibold">
-                      {revision_label}
-                    </span>
-                    {result && (
-                      <span className="ml-auto">
-                        <VerdictBadge verdict={result.verdict} />
+            {/* One column beside the chart; wraps into several when the legend sits below it. */}
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,12rem),1fr))] gap-3">
+              {shown.map(({ revision_id, revision_label, result }) => (
+                <Card key={revision_id} size="sm">
+                  <CardContent className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      {result && (
+                        <svg aria-hidden width="28" height="4">
+                          <line
+                            x2="28"
+                            y1="2"
+                            y2="2"
+                            strokeWidth="2"
+                            {...style.get(revision_label)}
+                          />
+                        </svg>
+                      )}
+                      <span className="text-base font-semibold">
+                        {revision_label}
                       </span>
+                      {result && (
+                        <span className="ml-auto">
+                          <VerdictBadge verdict={result.verdict} />
+                        </span>
+                      )}
+                    </div>
+                    {result ? (
+                      <p className="font-mono">
+                        {mm(result.peak_magnitude_mm)} at{" "}
+                        {hz(result.peak_frequency_hz)}
+                      </p>
+                    ) : (
+                      <p className="text-muted-foreground">
+                        No data for {revision_label}
+                      </p>
                     )}
-                  </div>
-                  {result ? (
-                    <p className="font-mono">
-                      {mm(result.peak_magnitude_mm)} at{" "}
-                      {hz(result.peak_frequency_hz)}
-                    </p>
-                  ) : (
-                    <p className="text-muted-foreground">
-                      No data for {revision_label}
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
             <p className="text-muted-foreground">
               Dots mark each revision’s highest sample within 0–50 Hz. Darker =
               newer revision.

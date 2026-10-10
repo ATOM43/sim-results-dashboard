@@ -20,6 +20,9 @@ import { useComparison, useMatrix, useProjectDemands } from "./queries";
 const activeToggle =
   "border-border bg-card data-[state=on]:border-primary data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary-hover data-[state=on]:hover:text-primary-foreground";
 
+/** The chart has five series colours, and more overlaid curves stop being readable. */
+const maxOverlay = 5;
+
 export function ComparePage() {
   const projects = useProjects();
   const [project] = useSelectedProject();
@@ -33,14 +36,29 @@ export function ComparePage() {
     matrix.data?.components.find((c) => String(c.id) === componentParam) ??
     matrix.data?.components.at(0);
 
-  // No `revisions` param: the API picks every revision with a result. An empty one means none selected.
+  const labels = matrix.data?.revisions.map((revision) => revision.label) ?? [];
+  const withResult = labels.filter((_, index) => component?.cells[index]);
+  // No `revisions` param: the newest revisions with a result. An empty one means none selected.
   const requested = revisionsParam?.split(",").filter(Boolean);
-  // A baseline left over from before its revision was deselected is ignored, so the API falls back to the earliest.
+  // A longer list in the URL keeps its first revisions, in revision order.
+  const selected = requested
+    ? labels.filter((label) => requested.includes(label)).slice(0, maxOverlay)
+    : withResult.slice(-maxOverlay);
+  const full = selected.length >= maxOverlay;
+  // A baseline left over from before its revision was deselected is ignored for the earliest selected.
   const baseline =
-    baselineParam && (!requested || requested.includes(baselineParam))
+    baselineParam && selected.includes(baselineParam)
       ? baselineParam
-      : undefined;
-  const comparison = useComparison(component?.id, requested, baseline);
+      : selected.at(0);
+  // Every revision is fetched: the selection only picks the chart overlay, the metric table lists them all.
+  // Labels the project does not have go along, so the API still names them.
+  const comparison = useComparison(
+    component?.id,
+    requested?.length === 0
+      ? []
+      : [...labels, ...(requested ?? []).filter((l) => !labels.includes(l))],
+    baseline,
+  );
 
   if (projects.isError)
     return (
@@ -64,11 +82,10 @@ export function ComparePage() {
     );
 
   const entries = comparison.data?.revisions ?? [];
-  const selected = requested ?? entries.map((entry) => entry.revision_label);
-  // Same colours as the chart, which only draws the revisions that have a result.
-  const drawn = entries.filter((entry) => entry.result);
+  // Same colours as the chart, which only draws the selected revisions that have a result.
+  const drawn = selected.filter((label) => withResult.includes(label));
   const colour = (label: string) => {
-    const index = drawn.findIndex((entry) => entry.revision_label === label);
+    const index = drawn.indexOf(label);
     return index < 0 ? undefined : seriesColor(index, drawn.length);
   };
 
@@ -113,8 +130,6 @@ export function ComparePage() {
           aria-label="Revisions"
           className="flex-wrap"
           value={selected}
-          // Until the API has answered with its default selection, a click would replace it rather than toggle.
-          disabled={!requested && !comparison.data}
           // Written in revision order, which also drops labels the project does not have.
           onValueChange={(next) =>
             setRevisions(
@@ -129,6 +144,7 @@ export function ComparePage() {
             <ToggleGroupItem
               key={id}
               value={label}
+              disabled={full && !selected.includes(label)}
               className="group rounded-full bg-card font-mono data-[state=on]:border-primary/40 data-[state=on]:bg-primary/10"
             >
               <span
@@ -144,6 +160,11 @@ export function ComparePage() {
             </ToggleGroupItem>
           ))}
         </ToggleGroup>
+        {full && (
+          <p className="text-muted-foreground">
+            Up to {maxOverlay} revisions can be compared at once.
+          </p>
+        )}
         <span className="text-muted-foreground">Baseline</span>
         <Select
           value={comparison.data?.baseline_revision_label ?? ""}
@@ -175,13 +196,13 @@ export function ComparePage() {
         <ErrorState message={comparison.error.message} />
       ) : !comparison.data ? (
         <LoadingState />
-      ) : entries.length === 0 ? (
+      ) : !entries.some((entry) => entry.result) ? (
         <EmptyState
           title="No results"
           description={`${component.name} has no result in any revision.`}
         />
       ) : (
-        <ComparisonView comparison={comparison.data} />
+        <ComparisonView comparison={comparison.data} overlay={selected} />
       )}
 
       <MatrixGrid
