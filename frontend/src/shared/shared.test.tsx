@@ -1,10 +1,20 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { FrequencyChart } from "./FrequencyChart";
+import { hz, mm, signedMm } from "./format";
 import { VerdictBadge } from "./VerdictBadge";
 
 it("runs the test runner", () => {
   expect(1 + 1).toBe(2);
+});
+
+it("formats values to one or two decimals", () => {
+  expect(mm(19.9)).toBe("19.9 mm");
+  expect(mm(15.04)).toBe("15.04 mm");
+  expect(mm(15)).toBe("15.0 mm");
+  expect(hz(37.8)).toBe("37.8 Hz");
+  expect(signedMm(0.04)).toBe("+0.04 mm");
+  expect(signedMm(-7)).toBe("−7.0 mm");
 });
 
 describe("VerdictBadge", () => {
@@ -60,6 +70,40 @@ describe("FrequencyChart", () => {
       ].map((c) => c.getAttribute("fill"));
     expect(fills(true)).toEqual(Array(3).fill("var(--chart-5)"));
     expect(fills(false)).toEqual(Array(2).fill("var(--background)"));
+  });
+
+  it("keeps the peak label off the limit line and the limit off the top edge", () => {
+    const labelIsAbove = (magnitude_mm: number) => {
+      const { container, unmount } = render(
+        <FrequencyChart
+          series={[
+            { label: "r", samples, peak: { magnitude_mm, frequency_hz: 37.8 } },
+          ]}
+        />,
+      );
+      const attr = (el: Element | null, name: string) =>
+        Number(el!.getAttribute(name));
+      const dotY = attr(
+        container.querySelector(".recharts-reference-dot circle"),
+        "cy",
+      );
+      const text = screen.getByText(/ mm @ /).closest("text");
+      const textY = attr(text, "y") + attr(text, "dy");
+      const limitY = attr(
+        container.querySelector(".recharts-reference-line line"),
+        "y1",
+      );
+      // samples peak at 30 mm, so the axis tops out at 36 and the 15 mm limit sits mid-plot
+      expect(limitY).toBeGreaterThan(60);
+      // the label is on the far side of the marker from the limit line
+      expect(Math.abs(textY - limitY)).toBeGreaterThan(Math.abs(dotY - limitY));
+      unmount();
+      return textY < dotY;
+    };
+    expect(labelIsAbove(22)).toBe(true);
+    expect(labelIsAbove(15.5)).toBe(true);
+    expect(labelIsAbove(15)).toBe(false);
+    expect(labelIsAbove(13.8)).toBe(false);
   });
 
   it("shows a legend only for several series", () => {

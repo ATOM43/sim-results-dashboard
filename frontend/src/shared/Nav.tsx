@@ -42,8 +42,27 @@ export function Nav() {
         ))}
       </nav>
       <Card size="sm">
-        <CardContent className="text-sm text-muted-foreground">
-          Pass: peak within 0–50 Hz ≤ 15.0 mm.
+        <CardContent className="space-y-2 text-sm text-muted-foreground">
+          <p>Pass: peak within 0–50 Hz ≤ 15.0 mm.</p>
+          {/* Same fill and stroke as the FrequencyChart band and limit line. */}
+          <p className="flex items-center gap-2">
+            <span
+              aria-hidden
+              className="h-3 w-5 rounded-sm border bg-assessed"
+            />
+            Assessed range
+          </p>
+          <p className="flex items-center gap-2">
+            <span
+              aria-hidden
+              className="w-5 border-t-2 border-dashed border-warning-foreground"
+            />
+            15.0 mm limit
+          </p>
+          <p className="text-xs">
+            Samples above 50 Hz are plotted but not assessed. This is a
+            data-review criterion, not a safety assessment.
+          </p>
         </CardContent>
       </Card>
     </aside>

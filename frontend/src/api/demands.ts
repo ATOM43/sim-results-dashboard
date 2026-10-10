@@ -6,3 +6,18 @@ export async function getOpenDemandCount(projectId: number) {
   );
   return demands.length;
 }
+
+export type Demand = {
+  id: number;
+  description: string;
+  status: "Open" | "In Progress" | "Resolved";
+  origin_type: "finding" | "manual";
+  origin_revision_label: string | null;
+  origin_value_mm: number | null;
+  origin_frequency_hz: number | null;
+  origin_limit_mm: number | null;
+};
+
+export function getComponentDemands(componentId: number) {
+  return request<Demand[]>(`/api/demands?component_id=${componentId}`);
+}

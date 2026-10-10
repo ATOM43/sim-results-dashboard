@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import {
   CartesianGrid,
   Line,
@@ -9,6 +9,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { hz, mm } from "./format";
 import {
   ChartContainer,
   ChartLegend,
@@ -19,6 +20,8 @@ import {
 import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";
 
 const FULL_MAX_HZ = 200;
+const activeToggle =
+  "data-[state=on]:bg-primary data-[state=on]:text-primary-foreground";
 
 export type ChartSample = {
   frequency_hz: number;
@@ -38,6 +41,8 @@ type Props = {
   series: ChartSeries[];
   limitMm?: number;
   assessMaxHz?: number;
+  /** Shown left of the zoom toggle. */
+  title?: ReactNode;
 };
 
 // shortcut: five chart tokens, so series older than the newest five share the lightest; add tokens if compare ever shows more.
@@ -48,9 +53,21 @@ export function FrequencyChart({
   series,
   limitMm = 15,
   assessMaxHz = 50,
+  title,
 }: Props) {
   const [zoom, setZoom] = useState<"full" | "assessed">("full");
   const maxHz = zoom === "full" ? FULL_MAX_HZ : assessMaxHz;
+  // Headroom so neither the limit line nor the peak touches the top edge.
+  const maxMm = Math.ceil(
+    Math.max(
+      limitMm,
+      ...series.flatMap((s) => s.samples.map((p) => p.magnitude_mm)),
+    ) * 1.2,
+  );
+  // A label above a peak that is at or just under the limit would sit on the limit line; put it below and to the right
+  // instead (straight below would sit on the curve).
+  const labelBelow = (peakMm: number) =>
+    peakMm <= limitMm && limitMm - peakMm < maxMm * 0.15;
   const config = Object.fromEntries(
     series.map((s, i) => [
       s.label,
@@ -60,20 +77,25 @@ export function FrequencyChart({
 
   return (
     <div className="space-y-2">
-      <ToggleGroup
-        type="single"
-        variant="outline"
-        size="sm"
-        aria-label="Frequency range"
-        value={zoom}
-        // Radix sends "" when the active item is pressed again; keep the current zoom.
-        onValueChange={(v) => v && setZoom(v as typeof zoom)}
-      >
-        <ToggleGroupItem value="full">0–{FULL_MAX_HZ} Hz</ToggleGroupItem>
-        <ToggleGroupItem value="assessed">
-          0–{assessMaxHz} Hz (assessed)
-        </ToggleGroupItem>
-      </ToggleGroup>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="font-heading text-base font-medium">{title}</div>
+        <ToggleGroup
+          type="single"
+          variant="outline"
+          size="sm"
+          aria-label="Frequency range"
+          value={zoom}
+          // Radix sends "" when the active item is pressed again; keep the current zoom.
+          onValueChange={(v) => v && setZoom(v as typeof zoom)}
+        >
+          <ToggleGroupItem value="full" className={activeToggle}>
+            0–{FULL_MAX_HZ} Hz
+          </ToggleGroupItem>
+          <ToggleGroupItem value="assessed" className={activeToggle}>
+            Zoom 0–{assessMaxHz} Hz
+          </ToggleGroupItem>
+        </ToggleGroup>
+      </div>
       <ChartContainer config={config} className="aspect-auto h-80 w-full">
         <LineChart margin={{ top: 24, right: 16, bottom: 16, left: 8 }}>
           <CartesianGrid vertical={false} />
@@ -90,6 +112,7 @@ export function FrequencyChart({
           />
           <YAxis
             type="number"
+            domain={[0, maxMm]}
             label={{
               value: "Magnitude (mm)",
               angle: -90,
@@ -99,17 +122,16 @@ export function FrequencyChart({
           <ReferenceArea
             x1={0}
             x2={assessMaxHz}
-            fill="var(--muted)"
-            fillOpacity={0.6}
+            fill="var(--assessed)"
+            fillOpacity={1}
             label={{ value: "Assessed", position: "insideTopLeft" }}
           />
           <ReferenceLine
             y={limitMm}
             stroke="var(--warning-foreground)"
             strokeDasharray="6 4"
-            ifOverflow="extendDomain"
             label={{
-              value: `${limitMm.toFixed(1)} mm limit`,
+              value: `${mm(limitMm)} limit`,
               position: "insideTopRight",
               fill: "var(--warning-foreground)",
             }}
@@ -165,10 +187,12 @@ export function FrequencyChart({
                   fill="none"
                   stroke={seriesColor(i, series.length)}
                   strokeWidth={2}
-                  ifOverflow="extendDomain"
                   label={{
-                    value: `${s.peak.magnitude_mm.toFixed(1)} mm @ ${s.peak.frequency_hz.toFixed(1)} Hz`,
-                    position: "top",
+                    value: `${mm(s.peak.magnitude_mm)} @ ${hz(s.peak.frequency_hz)}`,
+                    ...(labelBelow(s.peak.magnitude_mm)
+                      ? { position: "right", dy: 16 }
+                      : { position: "top" }),
+                    offset: 10,
                     fill: "var(--foreground)",
                   }}
                 />
