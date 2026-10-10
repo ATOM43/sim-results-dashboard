@@ -158,7 +158,9 @@ export function ComparisonView({ comparison }: { comparison: Comparison }) {
                       {hz(result.peak_frequency_hz)}
                     </p>
                   ) : (
-                    <p className="text-muted-foreground">no data</p>
+                    <p className="text-muted-foreground">
+                      No data for {revision_label}
+                    </p>
                   )}
                 </CardContent>
               </Card>
@@ -233,7 +235,7 @@ export function ComparisonView({ comparison }: { comparison: Comparison }) {
                   ) : (
                     // Spelled out, so a missing result never reads as a pass.
                     <TableCell colSpan={7} className="text-muted-foreground">
-                      no data
+                      No data for {revision_label}
                     </TableCell>
                   )}
                 </TableRow>

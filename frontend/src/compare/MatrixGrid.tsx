@@ -107,7 +107,9 @@ export function MatrixGrid({
                             )}
                           </span>
                         ) : (
-                          <span className="text-muted-foreground">no data</span>
+                          <span className="text-muted-foreground">
+                            No data for {matrix.revisions[index].label}
+                          </span>
                         )}
                       </TableCell>
                     );

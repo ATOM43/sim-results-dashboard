@@ -80,29 +80,45 @@ function ImportBadge() {
           </DialogDescription>
         </DialogHeader>
         <ul className="max-h-[60vh] divide-y overflow-y-auto">
-          {data.files.map((file) => (
-            <li key={file.source_key} className="space-y-1 py-2">
-              <div className="flex items-start justify-between gap-2">
-                <span className="font-mono text-xs break-all">
-                  {file.source_key}
-                </span>
-                <Badge
-                  variant="outline"
-                  className={file.status === "imported" ? undefined : warning}
-                >
-                  {file.status}
-                </Badge>
-              </div>
-              {file.error_message && (
-                <p className="text-destructive">{file.error_message}</p>
-              )}
-              {file.warnings.map((w) => (
-                <p key={w} className="text-muted-foreground">
-                  Warning: {w}
-                </p>
-              ))}
-            </li>
-          ))}
+          {/* Failed and missing files first, so they are never below the fold. */}
+          {data.files
+            .toSorted(
+              (a, b) =>
+                Number(a.status === "imported") -
+                Number(b.status === "imported"),
+            )
+            .map((file) => (
+              <li key={file.source_key} className="space-y-1 py-2">
+                <div className="flex items-start justify-between gap-2">
+                  <span className="font-mono text-xs break-all">
+                    {file.source_key}
+                  </span>
+                  <Badge
+                    variant="outline"
+                    className={file.status === "imported" ? undefined : warning}
+                  >
+                    {file.status}
+                  </Badge>
+                </div>
+                {/* A stale message is kept in the database after the file disappears; only a failure shows it. */}
+                {file.status === "failed" && file.error_message && (
+                  <p className="whitespace-pre-line text-destructive">
+                    {file.error_message}
+                  </p>
+                )}
+                {file.status === "missing" && (
+                  <p className="text-destructive">
+                    {file.source_key}: no longer in the inputs folder; the last
+                    imported result is kept
+                  </p>
+                )}
+                {file.warnings.map((w) => (
+                  <p key={w} className="text-muted-foreground">
+                    Warning: {w}
+                  </p>
+                ))}
+              </li>
+            ))}
         </ul>
       </DialogContent>
     </Dialog>

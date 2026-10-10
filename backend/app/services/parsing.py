@@ -60,7 +60,10 @@ def parse_csv(content: bytes, source_name: str) -> ParsedCsv:
                 if [cell.strip() for cell in row] != HEADER:
                     # Without the expected header the rows cannot be trusted; stop here.
                     raise CsvValidationError(
-                        [f"{where}: header must be exactly '{','.join(HEADER)}'"]
+                        [
+                            f"{where}: header must be exactly '{','.join(HEADER)}', "
+                            f"found '{','.join(cell.strip() for cell in row)}'"
+                        ]
                     )
                 header_seen = True
                 continue
@@ -102,8 +105,8 @@ def parse_csv(content: bytes, source_name: str) -> ParsedCsv:
             )
         elif samples[-1][0] < ASSESS_MAX_HZ:
             errors.append(
-                f"{source_name}: data ends at {samples[-1][0]:g} Hz, "
-                f"before {ASSESS_MAX_HZ:g} Hz; cannot be assessed"
+                f"{source_name} line {previous_line}: data ends at {samples[-1][0]:g} Hz, "
+                f"before the {ASSESS_MAX_HZ:g} Hz cutoff; cannot be assessed"
             )
     if errors:
         extra = len(errors) - MAX_REPORTED_ERRORS

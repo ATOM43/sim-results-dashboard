@@ -121,6 +121,12 @@ export function ResultDetail({ resultId }: { resultId: number }) {
           note={`${r.sample_count} samples · ${r.min_frequency_hz}–${r.max_frequency_hz} Hz · ${r.samples.filter((s) => s.assessed).length} assessed`}
         />
       </div>
+      {r.source.status !== "imported" && (
+        <p role="alert" className="text-warning-foreground">
+          Latest import: {r.source.source_key} {r.source.status}. This result is
+          from the last version that imported cleanly.
+        </p>
+      )}
       {r.source.warnings.map((w) => (
         <p key={w} className="text-muted-foreground">
           Warning: {w}

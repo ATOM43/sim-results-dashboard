@@ -106,7 +106,7 @@ def test_out_of_order_frequency():
 
 def test_data_ending_before_cutoff():
     assert errors_of(HEADER + b"5.0,2.1\n40.0,3.0\n") == [
-        "rev2/Lens.csv: data ends at 40 Hz, before 50 Hz; cannot be assessed"
+        "rev2/Lens.csv line 3: data ends at 40 Hz, before the 50 Hz cutoff; cannot be assessed"
     ]
 
 

@@ -38,7 +38,7 @@ const comparison = (name: keyof typeof peaks) => ({
   })),
 });
 
-const api: Record<string, unknown> = {
+const base: Record<string, unknown> = {
   "/api/projects": [{ id: 1, name: "Demo" }],
   "/api/projects/1/matrix": {
     project: { id: 1, name: "Demo" },
@@ -65,7 +65,8 @@ function Location() {
   return <output data-testid="search">{search}</output>;
 }
 
-function renderAt(url: string) {
+function renderAt(url: string, overrides: Record<string, unknown> = {}) {
+  const api = { ...base, ...overrides };
   vi.stubGlobal("fetch", async (input: string) => {
     const path = decodeURIComponent(input.replace(/^https?:\/\/[^/]+/, ""));
     if (path.includes("revisions=revX"))
@@ -167,4 +168,27 @@ it("shows the API's reason for a revision that does not exist", async () => {
   expect(
     await screen.findByText("revision revX not found for component 1"),
   ).toBeVisible();
+});
+
+it("says a revision has no data instead of showing a verdict", async () => {
+  const housing = comparison("Housing");
+  Object.assign(housing.revisions[2], { result: null });
+  const matrix = structuredClone(base["/api/projects/1/matrix"]) as {
+    components: { cells: unknown[] }[];
+  };
+  matrix.components[1].cells[2] = null;
+  renderAt("/compare?component=2", {
+    "/api/components/2/comparison": housing,
+    "/api/projects/1/matrix": matrix,
+  });
+
+  const row = await screen.findByRole("row", { name: /^rev3/ });
+  expect(within(row).getByText("No data for rev3")).toBeVisible();
+  expect(within(row).queryByText(/PASS|FAIL/)).not.toBeInTheDocument();
+  const gridRow = screen.getByRole("row", { name: /^Housing/ });
+  expect(within(gridRow).getByText("No data for rev3")).toBeVisible();
+  expect(within(gridRow).getAllByText(/PASS|FAIL/)).toHaveLength(2);
+  // metric table, grid and legend
+  expect(screen.getAllByText("No data for rev3")).toHaveLength(3);
+  expect(screen.getByText(/Latest \(rev3\) has no data\.$/)).toBeVisible();
 });

@@ -52,6 +52,8 @@ const api: Record<string, unknown> = {
 type Row = Record<string, unknown> & { id: number; status: string };
 let demands: Row[];
 let writes: { method: string; path: string; body: Record<string, unknown> }[];
+/** When set, every write is refused with this status and FastAPI `detail`. */
+let refusal: { status: number; detail: unknown } | undefined;
 
 function demand(
   id: number,
@@ -90,12 +92,18 @@ beforeEach(() => {
     demand(1, components[0], "Open", "Stiffen the bracket"),
   ];
   writes = [];
+  refusal = undefined;
   // A small stateful stand-in for the demands API, so writes show up in the refetched lists.
   vi.stubGlobal("fetch", async (input: string, init?: RequestInit) => {
     const url = new URL(input);
     const method = init?.method ?? "GET";
     const body = init?.body ? JSON.parse(String(init.body)) : undefined;
     if (method !== "GET") writes.push({ method, path: url.pathname, body });
+    if (method !== "GET" && refusal)
+      return Response.json(
+        { detail: refusal.detail },
+        { status: refusal.status },
+      );
     const one = demands.find((d) => `/api/demands/${d.id}` === url.pathname);
     if (url.pathname === "/api/demands" && method === "POST") {
       const component =
@@ -288,4 +296,46 @@ it("shows the demand's current status in the detail panel", async () => {
   expect(screen.getByRole("combobox", { name: "Status" })).toHaveTextContent(
     "In progress",
   );
+});
+
+it("shows the API's reason inside the dialog when a create is refused", async () => {
+  refusal = {
+    status: 400,
+    detail: "cannot raise a demand from a passing result",
+  };
+  renderAt("/revisions?project=1");
+  fireEvent.click(
+    await screen.findByRole("button", {
+      name: "+ Create demand from this finding",
+    }),
+  );
+  await screen.findByRole("dialog");
+  describe("Bring the peak below 15 mm");
+  fireEvent.click(screen.getByRole("button", { name: "Create demand" }));
+
+  const alert = await within(screen.getByRole("dialog")).findByRole("alert");
+  expect(alert).toHaveTextContent("Could not create the demand");
+  expect(alert).toHaveTextContent(
+    "cannot raise a demand from a passing result",
+  );
+  expect(screen.getByTestId("url")).toHaveTextContent("/revisions?project=1");
+});
+
+it("shows a validation error in the detail panel when a save is refused", async () => {
+  refusal = {
+    status: 422,
+    detail: [
+      { loc: ["body", "status"], msg: "Input should be 'Open' or 'Resolved'" },
+    ],
+  };
+  renderAt("/demands?demand=1");
+  await screen.findByRole("heading", { name: "D-1 · Bracket" });
+  fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent("Could not save the demand");
+  expect(alert).toHaveTextContent(
+    "status: Input should be 'Open' or 'Resolved'",
+  );
+  expect(screen.queryByText("Saved.")).not.toBeInTheDocument();
 });
