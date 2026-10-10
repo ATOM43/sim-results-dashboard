@@ -21,7 +21,6 @@ frontend/dist/
 
 task.md
 plan.md
-DECISIONS.md
 # Claude / graphify tooling
 graphify-out/
 .claude/
