@@ -12,7 +12,7 @@ export class ApiError extends Error {
 }
 
 /** Typed fetch: resolves with the JSON body, rejects on network failure or any non-2xx response. */
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response;
   try {
     response = await fetch(`${BASE_URL}${path}`, init);
@@ -22,14 +22,15 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     );
   }
   if (!response.ok) {
+    // FastAPI puts a string in `detail` for HTTPException; validation errors use a list, which falls through.
+    const body: unknown = await response.json().catch(() => null);
+    const detail = (body as { detail?: unknown } | null)?.detail;
     throw new ApiError(
       response.status,
-      `API returned ${response.status} ${response.statusText} for ${path}`,
+      typeof detail === "string"
+        ? detail
+        : `${response.status} ${response.statusText}`,
     );
   }
   return (await response.json()) as T;
-}
-
-export function getHealth() {
-  return request<{ status: string }>("/api/health");
 }

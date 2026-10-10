@@ -5,7 +5,10 @@ import { BrowserRouter } from "react-router";
 import "./index.css";
 import App from "./App.tsx";
 
-const queryClient = new QueryClient();
+// One retry: a stopped backend surfaces as an error in about a second, not after the default three backoffs.
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { retry: 1 } },
+});
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
