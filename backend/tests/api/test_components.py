@@ -4,6 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+from app import config
 from app.services.ingestion import sync_folder
 
 from .helpers import comparison, component_id, get
@@ -139,3 +140,19 @@ def test_unknown_id_returns_404(loaded: TestClient, path: str, detail: str):
 
     assert response.status_code == 404
     assert response.json() == {"detail": detail}
+
+
+def test_component_image_is_served_and_404s_when_absent(
+    loaded: TestClient, inputs: Path, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.setattr(config, "INPUTS_DIR", inputs)
+    url = f"/api/components/{component_id(loaded, 'Bracket')}/image"
+
+    response = loaded.get(url)
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "image/png"
+    assert response.content == (inputs / "Bracket.png").read_bytes()
+
+    (inputs / "Bracket.png").unlink()
+    assert loaded.get(url).status_code == 404
+    assert loaded.get("/api/components/999/image").status_code == 404
