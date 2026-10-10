@@ -205,6 +205,7 @@ export function ComparePage() {
 
       <MatrixGrid
         matrix={matrix.data}
+        pinned={selected}
         demands={demands.data}
         selectedId={component.id}
         onSelect={(id) => setComponent(String(id))}

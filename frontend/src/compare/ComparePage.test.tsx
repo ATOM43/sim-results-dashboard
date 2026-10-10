@@ -286,3 +286,38 @@ it("keeps the first five of a longer selection in the URL", async () => {
   expect(toggle(7)).toBeDisabled();
   expect(screen.queryByRole("alert")).toHaveTextContent(/^What changed/);
 });
+
+const twelve = [...seven, 12.9, 13.3, 15.4, 14.1, 12.2];
+const twelveRevisions = {
+  "/api/projects/1/matrix": matrix({ Bracket: twelve }),
+  "/api/components/1/comparison": comparison("Bracket", twelve),
+};
+const gridColumns = () =>
+  screen
+    .getAllByRole("columnheader", { name: /^rev\d+$/ })
+    .map((header) => header.textContent);
+
+it("shows the latest eight grid columns until the grid is expanded", async () => {
+  renderAt("/compare", twelveRevisions);
+  await screen.findByRole("row", { name: /^Bracket/ });
+  const latest = [5, 6, 7, 8, 9, 10, 11, 12].map((n) => `rev${n}`);
+  expect(gridColumns()).toEqual(latest);
+
+  fireEvent.click(
+    screen.getByRole("button", { name: "Show all 12 revisions" }),
+  );
+  expect(gridColumns()).toHaveLength(12);
+  expect(gridColumns()[0]).toBe("rev1");
+
+  fireEvent.click(
+    screen.getByRole("button", { name: "Show latest 8 revisions" }),
+  );
+  expect(gridColumns()).toEqual(latest);
+});
+
+it("keeps a compared revision's grid column outside the latest eight", async () => {
+  renderAt("/compare?revisions=rev2,rev12", twelveRevisions);
+  await screen.findByRole("row", { name: /^Bracket/ });
+  expect(gridColumns()).toHaveLength(9);
+  expect(gridColumns()[0]).toBe("rev2");
+});

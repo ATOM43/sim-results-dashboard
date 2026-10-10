@@ -1,8 +1,9 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import type { Matrix, Trend } from "@/api/comparison";
 import type { Demand } from "@/api/demands";
 import { decimal, signed } from "@/shared/format";
+import { Button } from "@/shared/ui/button";
 import { Card, CardContent } from "@/shared/ui/card";
 import {
   Table,
@@ -21,8 +22,21 @@ const trends: Record<Trend, [arrow: string, colour: string]> = {
   unchanged: ["→", "text-muted-foreground"],
 };
 
+/** Revision columns shown until the grid is expanded. */
+const latestCount = 8;
+// Opaque, so scrolled cells pass underneath; follows the selected row's tint.
+const pinnedColumn = "sticky z-10 bg-card group-data-[state=selected]:bg-muted";
+
+/** The expanded grid opens at its right end, where the latest revisions are. */
+function scrollToLatest(table: HTMLTableElement | null) {
+  const box = table?.parentElement;
+  if (box) box.scrollLeft = box.scrollWidth;
+}
+
 type Props = {
   matrix: Matrix;
+  /** Revision labels that keep their column while the grid is collapsed. */
+  pinned: string[];
   /** Undefined while loading: the demand column stays blank. */
   demands?: Demand[];
   selectedId: number;
@@ -33,11 +47,24 @@ type Props = {
 
 export function MatrixGrid({
   matrix,
+  pinned,
   demands,
   selectedId,
   onSelect,
   note,
 }: Props) {
+  const [expanded, setExpanded] = useState(false);
+  const total = matrix.revisions.length;
+  // Indexes into `matrix.revisions` and every row's `cells`.
+  const columns = matrix.revisions
+    .map((_, index) => index)
+    .filter(
+      (index) =>
+        expanded ||
+        index >= total - latestCount ||
+        pinned.includes(matrix.revisions[index].label),
+    );
+
   return (
     <Card>
       <CardContent className="space-y-3">
@@ -50,16 +77,35 @@ export function MatrixGrid({
             row to compare it
           </p>
         </div>
-        <Table>
+        {(expanded || columns.length < total) && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="bg-card"
+            onClick={() => setExpanded(!expanded)}
+          >
+            {expanded
+              ? `Show latest ${latestCount} revisions`
+              : `Show all ${total} revisions`}
+          </Button>
+        )}
+        <Table ref={expanded ? scrollToLatest : undefined}>
           <TableHeader>
             <TableRow>
-              <TableHead>Component</TableHead>
-              {matrix.revisions.map((revision) => (
-                <TableHead key={revision.id} className="font-mono">
-                  {revision.label}
+              <TableHead className={`${pinnedColumn} left-0`}>
+                Component
+              </TableHead>
+              {columns.map((index) => (
+                <TableHead
+                  key={matrix.revisions[index].id}
+                  className="font-mono"
+                >
+                  {matrix.revisions[index].label}
                 </TableHead>
               ))}
-              <TableHead>Linked demand</TableHead>
+              <TableHead className={`${pinnedColumn} right-0`}>
+                Linked demand
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -70,9 +116,9 @@ export function MatrixGrid({
                   key={row.id}
                   data-state={selected ? "selected" : undefined}
                   onClick={() => onSelect(row.id)}
-                  className="cursor-pointer"
+                  className="group cursor-pointer"
                 >
-                  <TableCell>
+                  <TableCell className={`${pinnedColumn} left-0`}>
                     {/* The click bubbles to the row; the button makes the row reachable by keyboard. */}
                     <button
                       type="button"
@@ -82,7 +128,8 @@ export function MatrixGrid({
                       {row.name}
                     </button>
                   </TableCell>
-                  {row.cells.map((cell, index) => {
+                  {columns.map((index) => {
+                    const cell = row.cells[index];
                     // The API's trend is against the previous revision that has a result, so the delta is too.
                     const previous = row.cells
                       .slice(0, index)
@@ -115,7 +162,7 @@ export function MatrixGrid({
                     );
                   })}
                   <TableCell
-                    className="space-x-2 font-mono"
+                    className={`${pinnedColumn} right-0 space-x-2 font-mono`}
                     onClick={(event) => event.stopPropagation()}
                   >
                     {demands
