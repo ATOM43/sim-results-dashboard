@@ -139,6 +139,13 @@ def test_errors_are_capped():
     assert errors[-1] == "… and 5 more"
 
 
+def test_malformed_csv_is_reported_with_its_line():
+    # A cell beyond the csv module's field size limit makes the reader itself give up.
+    (error,) = errors_of(HEADER + b"5.0,2.1\n50.0," + b"1" * 200_000 + b"\n")
+
+    assert error.startswith("rev2/Lens.csv line 3: field larger than field limit")
+
+
 def test_invalid_utf8():
     assert errors_of(HEADER + b"5.0,\xff\xfe\n") == ["rev2/Lens.csv: not valid UTF-8 text"]
 

@@ -174,6 +174,7 @@ def test_everything_that_is_not_a_revision_csv_is_ignored(session: Session, inpu
     (inputs / "rev1/notes.txt").write_text("hello")
     (inputs / "rev1/deeper").mkdir()
     shutil.copy(inputs / "rev1/Lens.csv", inputs / "rev1/deeper/Lens.csv")
+    (inputs / "rev1/folder.csv").mkdir()  # a directory that only looks like a CSV
     (inputs / "misc").mkdir()
     shutil.copy(inputs / "rev1/Lens.csv", inputs / "misc/Lens.csv")
     (inputs / "rev-old").mkdir()

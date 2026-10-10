@@ -55,6 +55,12 @@ def test_all_samples_above_50_hz_raises():
         assess([(50.1, 1.0), (60.0, 2.0)])
 
 
+@pytest.mark.parametrize("sample", [(float("nan"), 1.0), (10.0, float("inf"))])
+def test_non_finite_sample_raises(sample: tuple[float, float]):
+    with pytest.raises(AssessmentError, match="NaN or infinite"):
+        assess([(5.0, 1.0), sample])
+
+
 def test_margin_sign_follows_verdict():
     assert assess([(10.0, 16.5)]).margin_mm == pytest.approx(-1.5)
     assert assess([(10.0, 13.0)]).margin_mm == pytest.approx(2.0)
