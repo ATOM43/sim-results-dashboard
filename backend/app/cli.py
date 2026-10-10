@@ -5,6 +5,7 @@ from pathlib import Path
 
 from app import config
 from app.db.base import SessionLocal, init_db
+from app.services.demands import seed_demands
 from app.services.ingestion import ImportReport, sync_folder
 
 
@@ -30,7 +31,21 @@ def main(argv: Sequence[str] | None = None) -> int:
     import_parser = commands.add_parser("import", help="sync the inputs folder into the database")
     import_parser.add_argument("--inputs", type=Path, default=config.INPUTS_DIR)
     import_parser.add_argument("--project", default=config.DEFAULT_PROJECT_NAME)
+    commands.add_parser("seed-demands", help="raise a demand from every rev1 FAIL result")
     args = parser.parse_args(argv)
+
+    if args.command == "seed-demands":
+        init_db()
+        with SessionLocal() as session:
+            created, skipped = seed_demands(session)
+            for demand in created:
+                print(f"created   demand {demand.id}: {demand.description}")
+            for demand in skipped:
+                print(f"skipped (exists)  demand {demand.id}: {demand.component.name}")
+        if not created and not skipped:
+            print("No rev1 FAIL results found, so no demands were created. Run the import first.")
+        return 0
+
     if not args.inputs.is_dir():
         parser.error(f"inputs folder not found: {args.inputs}")
 

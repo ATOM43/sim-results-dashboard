@@ -1,4 +1,4 @@
-.PHONY: install import dev dev-api dev-web test lint format
+.PHONY: install import seed-demands dev dev-api dev-web test lint format
 
 install:
 	cd backend && uv sync
@@ -6,6 +6,9 @@ install:
 
 import:
 	cd backend && uv run python -m app.cli import
+
+seed-demands:
+	cd backend && uv run python -m app.cli seed-demands
 
 dev:
 	$(MAKE) -j2 dev-api dev-web
