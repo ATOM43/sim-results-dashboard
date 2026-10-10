@@ -9,6 +9,7 @@ export function RetryButton() {
       type="button"
       variant="outline"
       size="sm"
+      className="bg-card"
       onClick={() => client.refetchQueries({ type: "active" })}
     >
       Retry

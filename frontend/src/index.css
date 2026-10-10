@@ -40,6 +40,10 @@
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-active: var(--primary-active);
+  --color-header: var(--header);
+  --color-success-strong: var(--success-strong);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
@@ -56,21 +60,27 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
+  --background: #f6f7f9;
+  --header: #14181f;
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  --primary: var(--color-blue-700);
+  --primary-hover: var(--color-blue-800);
+  --primary-active: var(--color-blue-900);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
+  /* Darker than the page background, so a hover tint and a skeleton show on it and on a card. */
+  --muted: #e8ebf0;
+  /* Dark enough for AA on the page background and on --muted. */
+  --muted-foreground: #5a6270;
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
+  /* red-700: AA as text on white, on a card tint and on its own 10% badge fill. */
+  --destructive: var(--color-red-700);
   --warning: var(--color-amber-100);
   --warning-foreground: var(--color-amber-900);
   --warning-border: color-mix(
@@ -87,9 +97,11 @@
     var(--color-emerald-500) 50%,
     transparent
   );
-  --border: oklch(0.922 0 0);
+  --success-strong: var(--color-emerald-600);
+  /* A visible mid grey, so edges and dividers hold against the grey page without a hard line. */
+  --border: hsl(220 13% 80%);
   --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --ring: var(--primary);
   /* One hue, light to dark: overlaid series are drawn oldest lightest, newest darkest. */
   --chart-1: var(--color-blue-200);
   --chart-2: var(--color-blue-300);
@@ -115,6 +127,8 @@
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
   --primary: oklch(0.922 0 0);
+  --primary-hover: oklch(0.87 0 0);
+  --primary-active: oklch(0.8 0 0);
   --primary-foreground: oklch(0.205 0 0);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
@@ -145,9 +159,68 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* The header bar is always dark: it takes the dark tokens, then lifts the ones that must read on navy. */
+[data-slot="app-header"] {
+  --border: oklch(1 0 0 / 30%);
+  --input: oklch(1 0 0 / 30%);
+  --muted: oklch(1 0 0 / 14%);
+  --ring: var(--color-blue-300);
+  --warning: var(--color-amber-400);
+  --warning-foreground: var(--color-amber-950);
+  --warning-border: var(--color-amber-300);
+}
+
+/* The vendor card draws its edge as a 10% black ring, which is a box-shadow and ignores --border.
+   Give every card a real border on the shared token and drop that ring, so --border controls every edge.
+   Unlayered, so it wins over the vendor utilities; a card state that needs a ring marks it important. */
+[data-slot="card"] {
+  border: 1px solid var(--border);
+  --tw-ring-shadow: 0 0 #0000;
+}
+
+/* Button states the vendor variants lack. Unlayered, so they win over the vendor utilities without editing them. */
+[data-slot="button"][data-variant="default"]:hover {
+  background-color: var(--primary-hover);
+}
+[data-slot="button"][data-variant="default"]:active {
+  background-color: var(--primary-active);
+}
+[data-slot="button"][data-variant="outline"]:active {
+  background-color: var(--border);
+}
+/* The vendor button turns pointer events off when disabled, which also hides the cursor. */
+[data-slot="button"]:disabled {
+  pointer-events: auto;
+  cursor: not-allowed;
+  translate: none;
+}
+[data-slot="button"][data-variant="default"]:disabled {
+  background-color: var(--primary);
+}
+[data-slot="button"][data-variant="outline"]:disabled {
+  background-color: var(--card);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
+  }
+  a[href],
+  button,
+  summary,
+  label[for],
+  [role="button"],
+  [role="option"] {
+    cursor: pointer;
+  }
+  :disabled {
+    cursor: not-allowed;
+  }
+  /* Fallback focus ring; components that draw their own ring switch this outline off. */
+  :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+    outline-style: solid;
+    outline-width: 2px;
+    outline-offset: 2px;
   }
   body {
     @apply bg-background text-foreground;

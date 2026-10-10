@@ -50,8 +50,8 @@ export function ResultDetail({ resultId }: { resultId: number }) {
       <Alert
         className={
           fail
-            ? "border-destructive/30 bg-destructive/10"
-            : "border-success-border bg-success text-success-foreground"
+            ? "border-l-4 border-destructive/30 border-l-destructive bg-destructive/5"
+            : "border-l-4 border-success-border border-l-success-strong bg-success/40"
         }
       >
         <AlertDescription className="flex flex-wrap items-center gap-2 text-current">

@@ -4,11 +4,15 @@ import { Nav } from "./Nav";
 
 export function Shell({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-screen flex-col">
+    // From md up the shell fills the viewport and only <main> scrolls, so the header and nav stay put.
+    // Below md the nav stacks above the content and the page scrolls as one.
+    <div className="flex min-h-dvh flex-col md:h-dvh md:overflow-hidden">
       <Header />
-      <div className="flex flex-1 flex-col md:flex-row">
+      <div className="flex flex-1 flex-col md:min-h-0 md:flex-row">
         <Nav />
-        <main className="flex-1 p-6">{children}</main>
+        <main className="flex-1 p-6 md:min-w-0 md:overflow-y-auto">
+          {children}
+        </main>
       </div>
     </div>
   );

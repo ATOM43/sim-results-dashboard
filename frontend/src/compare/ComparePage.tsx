@@ -16,8 +16,9 @@ import { ComparisonView } from "./ComparisonView";
 import { MatrixGrid } from "./MatrixGrid";
 import { useComparison, useMatrix, useProjectDemands } from "./queries";
 
+// border-border: the vendor toggle draws its edge on the paler --input token.
 const activeToggle =
-  "data-[state=on]:bg-primary data-[state=on]:text-primary-foreground";
+  "border-border bg-card data-[state=on]:border-primary data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary-hover data-[state=on]:hover:text-primary-foreground";
 
 export function ComparePage() {
   const projects = useProjects();
@@ -128,7 +129,7 @@ export function ComparePage() {
             <ToggleGroupItem
               key={id}
               value={label}
-              className="group rounded-full font-mono"
+              className="group rounded-full bg-card font-mono data-[state=on]:border-primary/40 data-[state=on]:bg-primary/10"
             >
               <span
                 aria-hidden
@@ -149,7 +150,7 @@ export function ComparePage() {
           onValueChange={setBaseline}
           disabled={selected.length === 0}
         >
-          <SelectTrigger aria-label="Baseline" className="font-mono">
+          <SelectTrigger aria-label="Baseline" className="w-42 border-border font-mono">
             <SelectValue placeholder="—" />
           </SelectTrigger>
           <SelectContent>

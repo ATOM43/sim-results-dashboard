@@ -16,7 +16,7 @@ import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";
 
 const FULL_MAX_HZ = 200;
 const activeToggle =
-  "data-[state=on]:bg-primary data-[state=on]:text-primary-foreground";
+  "bg-card data-[state=on]:border-primary data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary-hover data-[state=on]:hover:text-primary-foreground";
 
 export type ChartSample = {
   frequency_hz: number;

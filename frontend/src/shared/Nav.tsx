@@ -1,7 +1,5 @@
 import { NavLink, useSearchParams } from "react-router";
 import { useApiError, useOpenDemandCount } from "./queries";
-import { Badge } from "./ui/badge";
-import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
 
 const pages = [
@@ -19,31 +17,30 @@ export function Nav() {
   const search = project ? `?project=${encodeURIComponent(project)}` : "";
 
   return (
-    <aside className="flex flex-col gap-4 border-b p-4 md:w-56 md:shrink-0 md:border-r md:border-b-0">
+    <aside className="flex flex-col gap-4 border-b bg-card p-4 md:w-56 md:shrink-0 md:overflow-y-auto md:border-r md:border-b-0">
       <nav className="flex flex-wrap gap-1 md:flex-col">
         {pages.map((page) => (
-          <Button
+          <NavLink
             key={page.path}
-            asChild
-            variant="ghost"
-            className="justify-start aria-[current=page]:bg-muted"
+            to={{ pathname: page.path, search }}
+            // NavLink sets aria-current="page" on the active item. Three states: idle (no fill), hover (grey fill),
+            // active (primary tint plus a 3 px bar, which still marks it in greyscale).
+            className="group relative flex h-8 items-center gap-2 rounded-lg px-3 text-sm font-medium text-muted-foreground outline-none transition-colors duration-150 not-aria-[current=page]:hover:bg-muted not-aria-[current=page]:hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 aria-[current=page]:bg-primary/10 aria-[current=page]:text-primary aria-[current=page]:before:absolute aria-[current=page]:before:inset-y-1.5 aria-[current=page]:before:left-0 aria-[current=page]:before:w-[3px] aria-[current=page]:before:rounded-full aria-[current=page]:before:bg-primary"
           >
-            <NavLink to={{ pathname: page.path, search }}>
-              {page.label}
-              {page.path === "/demands" && openDemands !== undefined && (
-                <Badge
-                  variant="secondary"
-                  className="ml-auto"
-                  aria-label={`${openDemands} open`}
-                >
-                  {openDemands}
-                </Badge>
-              )}
-            </NavLink>
-          </Button>
+            {page.label}
+            {page.path === "/demands" && openDemands !== undefined && (
+              <span
+                aria-label={`${openDemands} open`}
+                className="ml-auto rounded-full bg-muted px-2 py-0.5 text-xs tabular-nums transition-colors duration-150 group-[:not([aria-current=page]):hover]:bg-card in-aria-[current=page]:bg-primary/15"
+              >
+                {openDemands}
+              </span>
+            )}
+          </NavLink>
         ))}
       </nav>
-      <Card size="sm">
+      {/* Bottom of the column; when the column is shorter than its content, the column scrolls. */}
+      <Card size="sm" className="shrink-0 md:mt-auto">
         <CardContent className="space-y-2 text-sm text-muted-foreground">
           <p>Pass: peak within 0–50 Hz ≤ 15.0 mm.</p>
           {/* Same fill and stroke as the FrequencyChart band and limit line. */}

@@ -27,8 +27,9 @@ import { DemandDetail } from "./DemandDetail";
 import { originFinding, statusLabel, statuses } from "./format";
 import { useDemandList } from "./queries";
 
+// border-border: the vendor toggle and input draw their edge on the paler --input token.
 const activeToggle =
-  "data-[state=on]:bg-primary data-[state=on]:text-primary-foreground";
+  "border-border bg-card data-[state=on]:border-primary data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary-hover data-[state=on]:hover:text-primary-foreground";
 const pass = "border-success-border bg-success text-success-foreground";
 // The label carries the status; the colour only repeats it.
 const statusStyle: Record<DemandStatus, string | undefined> = {
@@ -104,7 +105,12 @@ export function DemandsPage() {
           <p className="text-muted-foreground">{project.name} / demands</p>
           <h1 className="text-2xl font-semibold">Engineering demands</h1>
         </div>
-        <Button variant="outline" size="lg" onClick={() => setCreating(true)}>
+        <Button
+          variant="outline"
+          size="lg"
+          className="bg-card"
+          onClick={() => setCreating(true)}
+        >
           + New manual demand
         </Button>
         <CreateDemandDialog
@@ -121,7 +127,7 @@ export function DemandsPage() {
             type="search"
             aria-label="Search"
             placeholder="Description, ID…"
-            className="w-56"
+            className="w-56 border-border"
             value={q ?? ""}
             onChange={(event) => setQ(event.target.value || null)}
           />

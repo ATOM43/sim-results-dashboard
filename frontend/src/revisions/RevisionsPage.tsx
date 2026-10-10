@@ -22,7 +22,8 @@ import { ResultDetail } from "./ResultDetail";
 const cardButton =
   "group rounded-xl text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
 const selectedCard =
-  "h-full group-aria-pressed:bg-muted/50 group-aria-pressed:ring-2 group-aria-pressed:ring-primary";
+  // The card edge is a border on --border (index.css). The trailing ! lets a state override that unlayered rule.
+  "h-full transition-[box-shadow,border-color] duration-150 group-[:not([aria-pressed=true]):hover]:border-primary/40! group-[:not([aria-pressed=true]):hover]:shadow-sm group-active:bg-muted group-aria-pressed:border-primary! group-aria-pressed:bg-primary/5 group-aria-pressed:ring-1! group-aria-pressed:ring-primary";
 
 /** "+2.1 mm vs rev1 · worse": the direction is in words, the colour only repeats it. */
 function Change({
@@ -148,7 +149,7 @@ export function RevisionsPage() {
           </h1>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button asChild variant="outline" size="lg">
+          <Button asChild size="lg">
             <Link
               to={{
                 pathname: "/compare",
@@ -245,17 +246,22 @@ export function RevisionsPage() {
                   <Card size="sm" className={selectedCard}>
                     <CardContent className="space-y-1">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="font-mono text-base font-semibold">
+                        <span className="text-base font-semibold">
                           {revision_label}
                         </span>
                         {result && <VerdictBadge verdict={result.verdict} />}
                       </div>
                       {result ? (
                         <>
-                          <p className="font-mono">
-                            {mm(result.peak_magnitude_mm)}{" "}
+                          <p>
+                            <span className="font-mono">
+                              {mm(result.peak_magnitude_mm)}
+                            </span>{" "}
                             <span className="text-muted-foreground">
-                              at {hz(result.peak_frequency_hz)}
+                              at{" "}
+                              <span className="font-mono">
+                                {hz(result.peak_frequency_hz)}
+                              </span>
                             </span>
                           </p>
                           <Change

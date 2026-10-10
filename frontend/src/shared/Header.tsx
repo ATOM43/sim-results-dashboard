@@ -42,7 +42,10 @@ function ProjectSelect() {
       onValueChange={setProject}
       disabled={!project}
     >
-      <SelectTrigger aria-label="Project" className="min-w-40">
+      <SelectTrigger
+        aria-label="Project"
+        className="min-w-40 transition-colors"
+      >
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>
@@ -76,7 +79,13 @@ function ImportBadge() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Badge asChild variant="outline" className={bad ? warning : undefined}>
+        <Badge
+          asChild
+          variant="outline"
+          className={
+            bad && !down ? `${warning} hover:bg-warning/85` : "hover:bg-muted"
+          }
+        >
           <button type="button">
             {down
               ? "Import: unavailable"
@@ -164,7 +173,10 @@ function ImportBadge() {
 
 export function Header() {
   return (
-    <header className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b px-6 py-3">
+    <header
+      data-slot="app-header"
+      className="dark flex flex-wrap items-center gap-x-6 gap-y-2 border-b bg-header px-6 py-3 text-foreground"
+    >
       <span className="font-semibold">Simulation Results</span>
       <ProjectSelect />
       <div className="ml-auto">

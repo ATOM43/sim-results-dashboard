@@ -99,10 +99,10 @@ export function ComparisonView({ comparison }: { comparison: Comparison }) {
       <Alert
         className={
           latestVerdict === "FAIL"
-            ? "border-destructive/30 bg-destructive/10"
+            ? "border-l-4 border-destructive/30 border-l-destructive bg-destructive/5"
             : latestVerdict === "PASS"
-              ? "border-success-border bg-success text-success-foreground"
-              : "bg-muted"
+              ? "border-l-4 border-success-border border-l-success-strong bg-success/40"
+              : "border-l-4 border-l-muted-foreground bg-muted"
         }
       >
         <AlertDescription className="text-current">
@@ -143,7 +143,7 @@ export function ComparisonView({ comparison }: { comparison: Comparison }) {
                         />
                       </svg>
                     )}
-                    <span className="font-mono text-base font-semibold">
+                    <span className="text-base font-semibold">
                       {revision_label}
                     </span>
                     {result && (
