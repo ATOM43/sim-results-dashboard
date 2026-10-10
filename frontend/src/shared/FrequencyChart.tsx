@@ -10,13 +10,8 @@ import {
   YAxis,
 } from "recharts";
 import { hz, mm } from "./format";
-import {
-  ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "./ui/chart";
+import { seriesColor, seriesDash } from "./seriesStyle";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "./ui/chart";
 import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";
 
 const FULL_MAX_HZ = 200;
@@ -44,10 +39,6 @@ type Props = {
   /** Shown left of the zoom toggle. */
   title?: ReactNode;
 };
-
-// shortcut: five chart tokens, so series older than the newest five share the lightest; add tokens if compare ever shows more.
-const seriesColor = (index: number, count: number) =>
-  `var(--chart-${Math.max(1, 5 - (count - 1 - index))})`;
 
 export function FrequencyChart({
   series,
@@ -148,9 +139,6 @@ export function FrequencyChart({
               />
             }
           />
-          {series.length > 1 && (
-            <ChartLegend content={<ChartLegendContent nameKey="value" />} />
-          )}
           {series.map((s, i) => {
             const color = seriesColor(i, series.length);
             return (
@@ -161,6 +149,7 @@ export function FrequencyChart({
                 name={s.label}
                 stroke={color}
                 strokeWidth={2}
+                strokeDasharray={seriesDash(i, series.length)}
                 isAnimationActive={false}
                 dot={({ key, cx, cy, payload }) => (
                   <circle
@@ -187,14 +176,19 @@ export function FrequencyChart({
                   fill="none"
                   stroke={seriesColor(i, series.length)}
                   strokeWidth={2}
-                  label={{
-                    value: `${mm(s.peak.magnitude_mm)} @ ${hz(s.peak.frequency_hz)}`,
-                    ...(labelBelow(s.peak.magnitude_mm)
-                      ? { position: "right", dy: 16 }
-                      : { position: "top" }),
-                    offset: 10,
-                    fill: "var(--foreground)",
-                  }}
+                  // Several peaks sit close together and their labels would overlap; the caller lists them instead.
+                  label={
+                    series.length === 1
+                      ? {
+                          value: `${mm(s.peak.magnitude_mm)} @ ${hz(s.peak.frequency_hz)}`,
+                          ...(labelBelow(s.peak.magnitude_mm)
+                            ? { position: "right", dy: 16 }
+                            : { position: "top" }),
+                          offset: 10,
+                          fill: "var(--foreground)",
+                        }
+                      : undefined
+                  }
                 />
               ),
           )}

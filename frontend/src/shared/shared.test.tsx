@@ -106,13 +106,13 @@ describe("FrequencyChart", () => {
     expect(labelIsAbove(13.8)).toBe(false);
   });
 
-  it("shows a legend only for several series", () => {
-    const { rerender } = render(<FrequencyChart series={series} />);
-    expect(screen.queryByText("Rev B")).not.toBeInTheDocument();
-    rerender(
-      <FrequencyChart series={[{ label: "Rev A", samples }, ...series]} />,
+  it("labels the peak only for a single series, where labels cannot overlap", () => {
+    const { container } = render(
+      <FrequencyChart series={[{ ...series[0], label: "Rev A" }, ...series]} />,
     );
-    expect(screen.getByText("Rev A")).toBeInTheDocument();
-    expect(screen.getByText("Rev B")).toBeInTheDocument();
+    expect(screen.queryByText(/ mm @ /)).not.toBeInTheDocument();
+    expect(
+      container.querySelectorAll(".recharts-reference-dot circle"),
+    ).toHaveLength(2);
   });
 });

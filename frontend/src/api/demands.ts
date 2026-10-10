@@ -11,6 +11,7 @@ export type Demand = {
   id: number;
   description: string;
   status: "Open" | "In Progress" | "Resolved";
+  component: { id: number; name: string };
   origin_type: "finding" | "manual";
   origin_revision_label: string | null;
   origin_value_mm: number | null;
@@ -20,4 +21,8 @@ export type Demand = {
 
 export function getComponentDemands(componentId: number) {
   return request<Demand[]>(`/api/demands?component_id=${componentId}`);
+}
+
+export function getProjectDemands(projectId: number) {
+  return request<Demand[]>(`/api/demands?project_id=${projectId}`);
 }
