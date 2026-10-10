@@ -1,14 +1,18 @@
+import { useState } from "react";
 import {
   useApiError,
   useImportStatus,
   useProjects,
+  useRunImport,
   useSelectedProject,
 } from "./queries";
 import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -56,7 +60,10 @@ function ImportBadge() {
   const { data, isPending } = useImportStatus();
   // A cached report is not shown while the API is failing: it may no longer be true.
   const down = useApiError() !== undefined;
-  if (!data || down) {
+  const run = useRunImport();
+  const [open, setOpen] = useState(false);
+  // An open dialog stays open through an outage, so an import error or summary is not lost.
+  if (!data || (down && !open)) {
     return (
       <Badge variant="outline">
         Import: {isPending && !down ? "loading…" : "unavailable"}
@@ -67,13 +74,15 @@ function ImportBadge() {
   const { imported, failed, missing } = data.counts;
   const bad = failed + missing > 0;
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Badge asChild variant="outline" className={bad ? warning : undefined}>
           <button type="button">
-            {bad
-              ? `Import: ${failed} failed, ${missing} missing`
-              : `Import: ${imported} files`}
+            {down
+              ? "Import: unavailable"
+              : bad
+                ? `Import: ${failed} failed, ${missing} missing`
+                : `Import: ${imported} files`}
           </button>
         </Badge>
       </DialogTrigger>
@@ -82,10 +91,20 @@ function ImportBadge() {
           <DialogTitle>Import report</DialogTitle>
           <DialogDescription>
             {imported} imported, {failed} failed, {missing} missing
-            {data.last_imported_at &&
-              ` · last import ${new Date(data.last_imported_at).toLocaleString()}`}
           </DialogDescription>
         </DialogHeader>
+        {run.data && (
+          <p role="status">
+            {run.data.inserted} imported · {run.data.updated} updated ·{" "}
+            {run.data.unchanged} unchanged · {run.data.failed} failed ·{" "}
+            {run.data.missing.length} missing
+          </p>
+        )}
+        {run.error && (
+          <p role="alert" className="text-destructive">
+            {run.error.message}
+          </p>
+        )}
         <ul className="max-h-[60vh] divide-y overflow-y-auto">
           {/* Failed and missing files first, so they are never below the fold. */}
           {data.files
@@ -127,6 +146,17 @@ function ImportBadge() {
               </li>
             ))}
         </ul>
+        <DialogFooter className="sm:items-center sm:justify-between">
+          <span className="text-muted-foreground">
+            Last import:{" "}
+            {data.last_imported_at
+              ? new Date(data.last_imported_at).toLocaleString()
+              : "never"}
+          </span>
+          <Button onClick={() => run.mutate()} disabled={run.isPending || down}>
+            {run.isPending ? "Importing…" : "Re-import inputs"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

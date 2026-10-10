@@ -59,7 +59,7 @@ make dev
 
 Stop both with Ctrl+C. Both ports must be free: the API only accepts browser requests from port 5173, so if Vite reports it moved to another port, stop whatever holds 5173 and start again.
 
-Re-import while the app is running with `make import` in a second terminal, or `curl -X POST http://localhost:8000/api/import`.
+Re-import while the app is running from the UI (click the import badge in the header, then **Re-import inputs**) or with `make import` in a second terminal.
 
 Optional environment variables: `SIM_INPUTS_DIR` (inputs folder), `SIM_DB_PATH` (database file), `VITE_API_URL` (API address the web app calls).
 

@@ -1,6 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getOpenDemandCount } from "@/api/demands";
-import { getImportStatus } from "@/api/imports";
+import { getImportStatus, runImport } from "@/api/imports";
 import { getProjects } from "@/api/projects";
 import { useUrlState } from "@/shared/useUrlState";
 
@@ -10,6 +10,15 @@ export function useProjects() {
 
 export function useImportStatus() {
   return useQuery({ queryKey: ["import-status"], queryFn: getImportStatus });
+}
+
+/** Runs the import, then refetches everything: any result, matrix or demand may have changed. */
+export function useRunImport() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: runImport,
+    onSuccess: () => void queryClient.invalidateQueries(),
+  });
 }
 
 /** The error of the first failing header query: while set, the header data on screen cannot be trusted. */

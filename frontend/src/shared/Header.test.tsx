@@ -1,5 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { afterEach, expect, it, vi } from "vitest";
 import { Header } from "./Header";
@@ -14,12 +20,17 @@ const file = (source_key: string, status = "imported", extra = {}) => ({
 });
 const clean = [file("rev1/Bracket.csv"), file("rev1/Lens.csv")];
 
-/** Renders the header against an import status built from `files`; `undefined` makes the API fail. */
-function renderWith(files?: ReturnType<typeof file>[]) {
+/** Renders the header against an import status built from `files`; `undefined` makes the API fail. `post` answers POST /api/import. */
+function renderWith(
+  files?: ReturnType<typeof file>[],
+  post?: () => Response | Promise<Response>,
+) {
   const count = (status: string) =>
     files!.filter((f) => f.status === status).length;
-  vi.stubGlobal("fetch", async (input: string) => {
+  vi.stubGlobal("fetch", async (input: string, init?: RequestInit) => {
     const path = new URL(input).pathname;
+    if (path === "/api/import" && init?.method === "POST" && post)
+      return post();
     if (path === "/api/projects")
       return Response.json([{ id: 1, name: "Demo" }]);
     if (path === "/api/demands") return Response.json([]);
@@ -45,6 +56,12 @@ function renderWith(files?: ReturnType<typeof file>[]) {
       </MemoryRouter>
     </QueryClientProvider>,
   );
+  return client;
+}
+
+async function openDialog() {
+  fireEvent.click(await screen.findByRole("button", { name: /^Import:/ }));
+  return within(await screen.findByRole("dialog"));
 }
 
 afterEach(() => vi.unstubAllGlobals());
@@ -60,7 +77,7 @@ it("shows a plain badge with the file count when every file imported", async () 
     within(dialog).getByText(/^2 imported, 0 failed, 0 missing/),
   ).toBeVisible();
   expect(within(dialog).getAllByRole("listitem")).toHaveLength(2);
-  expect(within(dialog).queryByText(/failed$|missing$/)).toBeNull();
+  expect(within(dialog).queryByText(/^(failed|missing)$/)).toBeNull();
 });
 
 it("turns amber and lists failed and missing files first, each with its reason", async () => {
@@ -109,4 +126,80 @@ it("says the import status is unavailable when the API fails", async () => {
   renderWith();
   expect(await screen.findByText("Import: unavailable")).toBeVisible();
   expect(screen.queryByRole("button", { name: /^Import:/ })).toBeNull();
+});
+
+it("re-imports from the dialog: Importing…, then the summary and a refreshed report", async () => {
+  const files = [...clean];
+  let finish!: (response: Response) => void;
+  const post = vi.fn(
+    () => new Promise<Response>((resolve) => (finish = resolve)),
+  );
+  renderWith(files, post);
+  const dialog = await openDialog();
+  expect(dialog.getByText(/^Last import: /)).toBeVisible();
+
+  fireEvent.click(dialog.getByRole("button", { name: "Re-import inputs" }));
+  const busy = await dialog.findByRole("button", { name: "Importing…" });
+  expect(busy).toBeDisabled();
+  expect(post).toHaveBeenCalledOnce();
+
+  // the import found a new, broken file; the status endpoint now reports it
+  files.push(
+    file("rev2/Lens.csv", "failed", { error_message: "file is empty" }),
+  );
+  finish(
+    Response.json({
+      inserted: 3,
+      updated: 1,
+      unchanged: 5,
+      failed: 1,
+      missing: [],
+      skipped: [],
+      files: [],
+    }),
+  );
+  expect(await dialog.findByRole("status")).toHaveTextContent(
+    "3 imported · 1 updated · 5 unchanged · 1 failed · 0 missing",
+  );
+  expect(
+    await screen.findByText("Import: 1 failed, 0 missing", { ignore: false }),
+  ).toBeInTheDocument();
+  expect(dialog.getAllByRole("listitem")[0]).toHaveTextContent("file is empty");
+  expect(
+    dialog.getByRole("button", { name: "Re-import inputs" }),
+  ).toBeEnabled();
+});
+
+it("shows the API's message for a 503 and re-enables the button", async () => {
+  renderWith(clean, () =>
+    Response.json(
+      { detail: "inputs folder not found: /srv/Inputs" },
+      { status: 503 },
+    ),
+  );
+  const dialog = await openDialog();
+  fireEvent.click(dialog.getByRole("button", { name: "Re-import inputs" }));
+
+  expect(await dialog.findByRole("alert")).toHaveTextContent(
+    "inputs folder not found: /srv/Inputs",
+  );
+  expect(
+    dialog.getByRole("button", { name: "Re-import inputs" }),
+  ).toBeEnabled();
+  expect(dialog.queryByRole("status")).toBeNull();
+});
+
+it("disables Re-import while the API is unreachable", async () => {
+  const client = renderWith(clean);
+  const dialog = await openDialog();
+  vi.stubGlobal("fetch", async () => {
+    throw new TypeError("Failed to fetch");
+  });
+  void client.invalidateQueries();
+
+  await waitFor(() =>
+    expect(
+      dialog.getByRole("button", { name: "Re-import inputs" }),
+    ).toBeDisabled(),
+  );
 });

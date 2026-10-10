@@ -58,7 +58,9 @@ I have no CAE background; each item is what the app does today and what I'd ask.
 - Recharts over D3: the band, limit line and peak marker come built in.
 
 ## Left out on purpose
-- Auth, deployment, UI file upload, migrations.
+- Auth, deployment, migrations.
+- File upload: an import can be triggered from the UI, but files can't be uploaded.
+- The UI import re-syncs the configured folder only and takes no path, so the browser can't point the server at an arbitrary directory.
 
 ## Future improvements
 - Versioned review rules; a project column on `source_files`; upload in the UI.

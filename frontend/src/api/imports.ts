@@ -17,3 +17,18 @@ export type ImportStatus = {
 export function getImportStatus() {
   return request<ImportStatus>("/api/import/status");
 }
+
+/** What one sync of the inputs folder did. */
+export type ImportReport = {
+  inserted: number;
+  updated: number;
+  unchanged: number;
+  failed: number;
+  missing: string[];
+  skipped: string[];
+};
+
+/** Re-syncs the server's configured inputs folder. Takes no path on purpose. */
+export function runImport() {
+  return request<ImportReport>("/api/import", { method: "POST" });
+}
