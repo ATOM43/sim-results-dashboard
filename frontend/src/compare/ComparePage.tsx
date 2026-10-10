@@ -150,7 +150,10 @@ export function ComparePage() {
           onValueChange={setBaseline}
           disabled={selected.length === 0}
         >
-          <SelectTrigger aria-label="Baseline" className="w-42 border-border font-mono">
+          <SelectTrigger
+            aria-label="Baseline"
+            className="w-42 border-border font-mono"
+          >
             <SelectValue placeholder="—" />
           </SelectTrigger>
           <SelectContent>

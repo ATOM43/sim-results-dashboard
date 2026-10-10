@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import type { Demand, DemandStatus } from "@/api/demands";
 import { useProjectDemands } from "@/compare/queries";
@@ -11,6 +11,7 @@ import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent } from "@/shared/ui/card";
 import { Input } from "@/shared/ui/input";
+import { Sheet, SheetContent, SheetTitle } from "@/shared/ui/sheet";
 import {
   Table,
   TableBody,
@@ -61,7 +62,9 @@ export function DemandsPage() {
   const [statusParam, setStatus] = useUrlState("status");
   const [componentParam, setComponent] = useUrlState("component");
   const [q, setQ] = useUrlState("q", { replace: true });
+  const [demandParam, setDemand] = useUrlState("demand");
   const [creating, setCreating] = useState(false);
+  const closedRow = useRef<HTMLElement>(null);
 
   const status = statuses.find((s) => s === statusParam);
   const componentId = Number(componentParam) || undefined;
@@ -87,7 +90,7 @@ export function DemandsPage() {
   const rows = list.data?.filter((d) =>
     `D-${d.id} ${d.description}`.toLowerCase().includes(needle),
   );
-  const selectedId = Number(params.get("demand")) || rows?.at(0)?.id;
+  const selectedId = Number(demandParam) || undefined;
   const search = `?project=${project.id}`;
   const count = (s?: DemandStatus) =>
     all.data ? ` (${all.data.filter((d) => !s || d.status === s).length})` : "";
@@ -207,7 +210,12 @@ export function DemandsPage() {
                     <TableRow
                       key={demand.id}
                       aria-selected={demand.id === selectedId}
-                      className="aria-selected:bg-muted aria-selected:shadow-[inset_3px_0_0_var(--primary)]"
+                      className="cursor-pointer aria-selected:bg-muted aria-selected:shadow-[inset_3px_0_0_var(--primary)]"
+                      // The ID link is the keyboard path; links in the row keep their own target.
+                      onClick={(event) => {
+                        if ((event.target as Element).closest("a")) return;
+                        setDemand(String(demand.id));
+                      }}
                     >
                       <TableCell className="align-top font-mono">
                         <Link to={select(demand.id)} className={link}>
@@ -311,7 +319,30 @@ export function DemandsPage() {
         </Card>
       )}
 
-      {selectedId !== undefined && <DemandDetail demandId={selectedId} />}
+      <Sheet
+        open={selectedId !== undefined}
+        onOpenChange={(open) => {
+          if (open) return;
+          closedRow.current = document.querySelector(
+            'tr[aria-selected="true"] a',
+          );
+          setDemand(null);
+        }}
+      >
+        <SheetContent
+          aria-describedby={undefined}
+          className="overflow-y-auto p-4 pt-12 data-[side=right]:w-full data-[side=right]:sm:max-w-xl"
+          // A reloaded deep link has no previously focused element to return to; use the demand's row.
+          onCloseAutoFocus={(event) => {
+            if (!closedRow.current?.isConnected) return;
+            event.preventDefault();
+            closedRow.current.focus();
+          }}
+        >
+          <SheetTitle className="sr-only">Demand D-{selectedId}</SheetTitle>
+          {selectedId !== undefined && <DemandDetail demandId={selectedId} />}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

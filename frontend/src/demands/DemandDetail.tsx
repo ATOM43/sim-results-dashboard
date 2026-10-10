@@ -212,7 +212,7 @@ export function DemandDetail({ demandId }: { demandId: number }) {
   if (!demand.data) return <LoadingState />;
 
   return (
-    <div className="grid items-start gap-6 lg:grid-cols-2">
+    <div className="grid gap-4">
       {/* Keyed so the form starts from the newly selected demand. */}
       <EditCard key={demand.data.id} demand={demand.data} />
       <HistoryCard demand={demand.data} />

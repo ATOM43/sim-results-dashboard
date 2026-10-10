@@ -168,7 +168,7 @@ const choose = (name: string, value: string) =>
     target: { value },
   });
 
-it("creates a demand from a FAIL result and selects it on the demands page", async () => {
+it("creates a demand from a FAIL result and opens it on the demands page", async () => {
   renderAt("/revisions?project=1");
   fireEvent.click(
     await screen.findByRole("button", {
@@ -187,7 +187,8 @@ it("creates a demand from a FAIL result and selects it on the demands page", asy
   describe("Bring the peak below 15 mm");
   fireEvent.click(screen.getByRole("button", { name: "Create demand" }));
 
-  const row = await screen.findByRole("row", { name: /^D-3/ });
+  // The open drawer hides the page behind it from the accessibility tree.
+  const row = await screen.findByRole("row", { name: /^D-3/, hidden: true });
   expect(writes).toEqual([
     {
       method: "POST",
@@ -200,9 +201,10 @@ it("creates a demand from a FAIL result and selects it on the demands page", asy
     "/demands?project=1&demand=3",
   );
   expect(
-    await screen.findByRole("heading", { name: "D-3 · Bracket" }),
+    await within(screen.getByRole("dialog")).findByRole("heading", {
+      name: "D-3 · Bracket",
+    }),
   ).toBeVisible();
-  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 });
 
 it("blocks submit while the description is empty", async () => {
@@ -230,9 +232,11 @@ it("creates a manual demand for the chosen component", async () => {
   choose("component", "2");
   fireEvent.click(screen.getByRole("button", { name: "Create demand" }));
 
-  expect(await screen.findByRole("row", { name: /^D-3/ })).toHaveAttribute(
-    "aria-selected",
-    "true",
+  // The row arrives with the refetched list, the selection with the navigation after it.
+  await vi.waitFor(() =>
+    expect(
+      screen.getByRole("row", { name: /^D-3/, hidden: true }),
+    ).toHaveAttribute("aria-selected", "true"),
   );
   expect(writes[0].body).toEqual({
     origin_type: "manual",
@@ -241,7 +245,7 @@ it("creates a manual demand for the chosen component", async () => {
   });
 });
 
-it("saves a status change and shows it in the row and the panel", async () => {
+it("saves a status change and shows it in the row and the drawer", async () => {
   renderAt("/demands?demand=1");
   await screen.findByRole("heading", { name: "D-1 · Bracket" });
   expect(
@@ -250,7 +254,7 @@ it("saves a status change and shows it in the row and the panel", async () => {
   choose("status", "Resolved");
   fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
-  const row = screen.getByRole("row", { name: /^D-1/ });
+  const row = screen.getByRole("row", { name: /^D-1/, hidden: true });
   expect(await within(row).findByText("Resolved")).toBeVisible();
   expect(writes).toEqual([
     {
@@ -262,7 +266,38 @@ it("saves a status change and shows it in the row and the panel", async () => {
   expect(screen.getByRole("combobox", { name: "Status" })).toHaveTextContent(
     "Resolved",
   );
-  expect(screen.getByRole("radio", { name: "Resolved (1)" })).toBeVisible();
+  expect(
+    screen.getByRole("radio", { name: "Resolved (1)", hidden: true }),
+  ).toBeVisible();
+});
+
+it("opens the drawer from a row click and closes it, clearing the param", async () => {
+  renderAt("/demands?project=1");
+  const row = await screen.findByRole("row", { name: /^D-1/ });
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  fireEvent.click(within(row).getByText("Stiffen the bracket"));
+  expect(screen.getByTestId("url")).toHaveTextContent(
+    "/demands?project=1&demand=1",
+  );
+  const drawer = await screen.findByRole("dialog");
+  await within(drawer).findByRole("heading", { name: "D-1 · Bracket" });
+  expect(drawer).toContainElement(document.activeElement as HTMLElement);
+
+  fireEvent.keyDown(document.activeElement!, { key: "Escape" });
+  await vi.waitFor(() =>
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+  );
+  expect(screen.getByTestId("url")).toHaveTextContent("/demands?project=1");
+  expect(screen.getByTestId("url")).not.toHaveTextContent("demand=");
+  await vi.waitFor(() =>
+    expect(within(row).getByRole("link", { name: "D-1" })).toHaveFocus(),
+  );
+});
+
+it("closes a deep-linked drawer on the X", async () => {
+  renderAt("/demands?demand=2");
+  fireEvent.click(await screen.findByRole("button", { name: "Close" }));
+  expect(screen.getByTestId("url")).toHaveTextContent(/^\/demands$/);
 });
 
 it("puts a filter change in the URL and filters the table", async () => {
