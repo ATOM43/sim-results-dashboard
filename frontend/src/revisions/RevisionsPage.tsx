@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router";
 import { componentImageUrl } from "@/api/components";
 import { CreateDemandDialog } from "@/demands/CreateDemandDialog";
+import { originFinding, statusLabel } from "@/demands/format";
 import { hz, mm, signedMm } from "@/shared/format";
 import { useProjects, useSelectedProject } from "@/shared/queries";
 import { RetryButton } from "@/shared/RetryButton";
@@ -50,45 +51,48 @@ function Change({
 
 function LinkedDemands({
   componentId,
-  search,
+  projectId,
 }: {
   componentId: number;
-  search: string;
+  projectId: number;
 }) {
   const demands = useComponentDemands(componentId);
-  if (demands.isError) return <ErrorState message={demands.error.message} />;
+  if (demands.isError)
+    return (
+      <ErrorState message={demands.error.message} action={<RetryButton />} />
+    );
 
-  return demands.data?.map((demand) => (
-    <Card key={demand.id} size="sm">
-      <CardContent className="flex flex-wrap items-center justify-between gap-3">
-        <div className="space-y-1">
-          <p className="text-muted-foreground">Linked demand</p>
-          <p className="font-medium">
-            <span className="font-mono">D-{demand.id}</span> ·{" "}
-            {demand.description}
-          </p>
-          <p className="text-muted-foreground">
-            Origin:{" "}
-            {demand.origin_type === "manual" ||
-            demand.origin_value_mm === null ||
-            demand.origin_frequency_hz === null ||
-            demand.origin_limit_mm === null
-              ? "manual"
-              : `${demand.origin_revision_label} · peak ${mm(demand.origin_value_mm)} at ${hz(demand.origin_frequency_hz)} · limit ${mm(demand.origin_limit_mm)}`}
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Badge variant="secondary">{demand.status}</Badge>
-          <Link
-            to={{ pathname: "/demands", search }}
-            className="underline underline-offset-4"
-          >
-            Open in demands →
-          </Link>
-        </div>
-      </CardContent>
-    </Card>
-  ));
+  return demands.data?.map((demand) => {
+    const finding = originFinding(demand);
+    return (
+      <Card key={demand.id} size="sm">
+        <CardContent className="flex flex-wrap items-center justify-between gap-3">
+          <div className="space-y-1">
+            <p className="text-muted-foreground">Linked demand</p>
+            <p className="font-medium">
+              <span className="font-mono">D-{demand.id}</span> ·{" "}
+              {demand.description}
+            </p>
+            <p className="text-muted-foreground">
+              Origin:{" "}
+              {finding
+                ? `${demand.origin_revision_label} · ${finding}`
+                : "manual"}
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Badge variant="secondary">{statusLabel[demand.status]}</Badge>
+            <Link
+              to={`/demands?project=${projectId}&demand=${demand.id}`}
+              className="underline underline-offset-4"
+            >
+              Open in demands →
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  });
 }
 
 /** Brings the selected revision into its scrolling list. Not scrollIntoView: that would also scroll the page. */
@@ -310,7 +314,7 @@ export function RevisionsPage() {
                 description={`${component.name} has no result in this revision. This is not a pass.`}
               />
             )}
-            <LinkedDemands componentId={component.id} search={search} />
+            <LinkedDemands componentId={component.id} projectId={project.id} />
           </div>
         </div>
       )}

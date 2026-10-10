@@ -34,7 +34,7 @@ const base: Record<string, unknown> = {
     {
       id: 9,
       description: "Stiffen the bracket",
-      status: "Open",
+      status: "In Progress",
       origin_type: "finding",
       origin_revision_label: "rev1",
       origin_value_mm: 19.9,
@@ -117,8 +117,12 @@ it("defaults to the first component and its latest revision with a result", asyn
   expect(screen.getByText("Frequency response · Bracket · rev2")).toBeVisible();
   expect(screen.getByText("D-9")).toBeVisible();
   expect(
-    screen.getByText("Origin: rev1 · peak 19.9 mm at 37.6 Hz · limit 15.0 mm"),
+    screen.getByText("Origin: rev1 · Peak 19.9 mm at 37.6 Hz · limit 15.0 mm"),
   ).toBeVisible();
+  expect(screen.getByText("In progress")).toBeVisible();
+  expect(
+    screen.getByRole("link", { name: "Open in demands →" }),
+  ).toHaveAttribute("href", "/demands?project=1&demand=9");
   expect(
     screen.getByRole("button", { name: "+ Create demand from this finding" }),
   ).toBeEnabled();

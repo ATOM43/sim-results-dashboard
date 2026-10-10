@@ -45,15 +45,8 @@ export function getComponentDemands(componentId: number) {
   return request<Demand[]>(`/api/demands?component_id=${componentId}`);
 }
 
-export function getProjectDemands(
-  projectId: number,
-  status?: DemandStatus,
-  componentId?: number,
-) {
-  const query = new URLSearchParams({ project_id: String(projectId) });
-  if (status) query.set("status", status);
-  if (componentId) query.set("component_id", String(componentId));
-  return request<Demand[]>(`/api/demands?${query}`);
+export function getProjectDemands(projectId: number) {
+  return request<Demand[]>(`/api/demands?project_id=${projectId}`);
 }
 
 export function getDemand(demandId: number) {

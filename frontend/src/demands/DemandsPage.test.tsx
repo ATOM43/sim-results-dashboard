@@ -52,6 +52,8 @@ const api: Record<string, unknown> = {
 type Row = Record<string, unknown> & { id: number; status: string };
 let demands: Row[];
 let writes: { method: string; path: string; body: Record<string, unknown> }[];
+/** The query string of each demands list request. */
+let lists: string[];
 /** When set, every write is refused with this status and FastAPI `detail`. */
 let refusal: { status: number; detail: unknown } | undefined;
 
@@ -92,6 +94,7 @@ beforeEach(() => {
     demand(1, components[0], "Open", "Stiffen the bracket"),
   ];
   writes = [];
+  lists = [];
   refusal = undefined;
   // A small stateful stand-in for the demands API, so writes show up in the refetched lists.
   vi.stubGlobal("fetch", async (input: string, init?: RequestInit) => {
@@ -113,6 +116,7 @@ beforeEach(() => {
       return Response.json(created, { status: 201 });
     }
     if (url.pathname === "/api/demands") {
+      lists.push(url.search);
       const status = url.searchParams.get("status");
       const component = url.searchParams.get("component_id");
       return Response.json(
@@ -323,6 +327,17 @@ it("puts a filter change in the URL and filters the table", async () => {
     target: { value: "peak" },
   });
   expect(screen.getByTestId("url")).toHaveTextContent("q=peak");
+
+  // text search narrows the rows too
+  fireEvent.click(screen.getByRole("radio", { name: "All (2)" }));
+  fireEvent.click(screen.getAllByRole("radio", { name: "All" })[0]);
+  fireEvent.change(screen.getByRole("searchbox", { name: "Search" }), {
+    target: { value: "housing" },
+  });
+  expect(screen.getByRole("row", { name: /^D-2/ })).toBeVisible();
+  expect(screen.queryByRole("row", { name: /^D-1/ })).not.toBeInTheDocument();
+  // one request for the page; every filter ran in the browser
+  expect(lists).toEqual(["?project_id=1"]);
 });
 
 it("shows the demand's current status in the detail panel", async () => {

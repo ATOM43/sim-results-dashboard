@@ -26,7 +26,6 @@ import { VerdictBadge } from "@/shared/VerdictBadge";
 import { CreateDemandDialog } from "./CreateDemandDialog";
 import { DemandDetail } from "./DemandDetail";
 import { originFinding, statusLabel, statuses } from "./format";
-import { useDemandList } from "./queries";
 
 // border-border: the vendor toggle and input draw their edge on the paler --input token.
 const activeToggle =
@@ -69,9 +68,8 @@ export function DemandsPage() {
   const status = statuses.find((s) => s === statusParam);
   const componentId = Number(componentParam) || undefined;
   const components = useComponents(project?.id);
-  // Unfiltered, for the status counts; the same query Compare uses.
+  // Unfiltered, for the status counts and the table; the same query Compare uses. Filters run in the browser.
   const all = useProjectDemands(project?.id);
-  const list = useDemandList(project?.id, status, componentId);
 
   if (projects.isError)
     return (
@@ -87,8 +85,11 @@ export function DemandsPage() {
   if (!project) return <LoadingState />;
 
   const needle = (q ?? "").trim().toLowerCase();
-  const rows = list.data?.filter((d) =>
-    `D-${d.id} ${d.description}`.toLowerCase().includes(needle),
+  const rows = all.data?.filter(
+    (d) =>
+      (!status || d.status === status) &&
+      (!componentId || d.component.id === componentId) &&
+      `D-${d.id} ${d.description}`.toLowerCase().includes(needle),
   );
   const selectedId = Number(demandParam) || undefined;
   const search = `?project=${project.id}`;
@@ -179,8 +180,8 @@ export function DemandsPage() {
         </CardContent>
       </Card>
 
-      {list.isError ? (
-        <ErrorState message={list.error.message} />
+      {all.isError ? (
+        <ErrorState message={all.error.message} />
       ) : !rows ? (
         <LoadingState />
       ) : rows.length === 0 ? (
@@ -192,7 +193,7 @@ export function DemandsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>ID</TableHead>
-                  <TableHead>Component · project</TableHead>
+                  <TableHead>Component</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Origin finding</TableHead>
@@ -221,11 +222,8 @@ export function DemandsPage() {
                           D-{demand.id}
                         </Link>
                       </TableCell>
-                      <TableCell className={cell}>
-                        <p className="font-medium">{component.name}</p>
-                        <p className="text-muted-foreground">
-                          {demand.project.name}
-                        </p>
+                      <TableCell className={`${cell} font-medium`}>
+                        {component.name}
                       </TableCell>
                       <TableCell className={`${cell} min-w-48`}>
                         {demand.description}

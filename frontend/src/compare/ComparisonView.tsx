@@ -78,19 +78,11 @@ function Delta({
   );
 }
 
-/** `overlay`: the labels drawn in the chart and its legend; the summary and the metric table cover every revision. */
-export function ComparisonView({
-  comparison,
-  overlay,
-}: {
-  comparison: Comparison;
-  overlay: string[];
-}) {
+export function ComparisonView({ comparison }: { comparison: Comparison }) {
   const { component, revisions: entries } = comparison;
   const baseline = comparison.baseline_revision_label;
-  const shown = entries.filter((e) => overlay.includes(e.revision_label));
-  // Chart series are the shown revisions that have a result; `style` maps a label to its line.
-  const withResult = shown.filter((entry) => entry.result);
+  // Chart series are the revisions that have a result; `style` maps a label to its line.
+  const withResult = entries.filter((entry) => entry.result);
   const style = new Map(
     withResult.map((entry, index) => [
       entry.revision_label,
@@ -138,7 +130,7 @@ export function ComparisonView({
             </h2>
             {/* One column beside the chart; wraps into several when the legend sits below it. */}
             <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,12rem),1fr))] gap-3">
-              {shown.map(({ revision_id, revision_label, result }) => (
+              {entries.map(({ revision_id, revision_label, result }) => (
                 <Card key={revision_id} size="sm">
                   <CardContent className="space-y-1">
                     <div className="flex items-center gap-2">

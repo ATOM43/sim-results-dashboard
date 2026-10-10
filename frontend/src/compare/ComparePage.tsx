@@ -50,13 +50,11 @@ export function ComparePage() {
     baselineParam && selected.includes(baselineParam)
       ? baselineParam
       : selected.at(0);
-  // Every revision is fetched: the selection only picks the chart overlay, the metric table lists them all.
-  // Labels the project does not have go along, so the API still names them.
+  // Only the selected revisions are fetched, for the chart and the metric table alike; the matrix covers the rest.
+  // Labels the project does not have go along, so the API still names them in its 400.
   const comparison = useComparison(
     component?.id,
-    requested?.length === 0
-      ? []
-      : [...labels, ...(requested ?? []).filter((l) => !labels.includes(l))],
+    [...selected, ...(requested ?? []).filter((l) => !labels.includes(l))],
     baseline,
   );
 
@@ -81,7 +79,6 @@ export function ComparePage() {
       />
     );
 
-  const entries = comparison.data?.revisions ?? [];
   // Same colours as the chart, which only draws the selected revisions that have a result.
   const drawn = selected.filter((label) => withResult.includes(label));
   const colour = (label: string) => {
@@ -194,15 +191,16 @@ export function ComparePage() {
         />
       ) : comparison.isError ? (
         <ErrorState message={comparison.error.message} />
-      ) : !comparison.data ? (
-        <LoadingState />
-      ) : !entries.some((entry) => entry.result) ? (
+      ) : selected.length === 0 && !requested ? (
+        // Nothing to select by default, so nothing was fetched.
         <EmptyState
           title="No results"
           description={`${component.name} has no result in any revision.`}
         />
+      ) : !comparison.data ? (
+        <LoadingState />
       ) : (
-        <ComparisonView comparison={comparison.data} overlay={selected} />
+        <ComparisonView comparison={comparison.data} />
       )}
 
       <MatrixGrid

@@ -13,7 +13,7 @@ const names = Object.keys(peaks) as (keyof typeof peaks)[];
 const verdict = (peak: number) => (peak <= 15 ? "PASS" : "FAIL");
 const trend = (delta: number) => (delta > 0 ? "degraded" : "improved");
 
-/** What the API answers for every revision with rev1 as the baseline. */
+/** What the API answers for every revision with rev1 as the baseline; the stub narrows it to the requested ones. */
 const comparison = (name: keyof typeof peaks, values = peaks[name]) => ({
   project: { id: 1, name: "Demo" },
   component: { id: names.indexOf(name) + 1, name },
@@ -70,22 +70,32 @@ function Location() {
   return <output data-testid="search">{search}</output>;
 }
 
+/** The `revisions` param of each comparison request, in order. */
+let requests: (string | null)[];
+
 function renderAt(url: string, overrides: Record<string, unknown> = {}) {
   const api = { ...base, ...overrides };
+  requests = [];
   vi.stubGlobal("fetch", async (input: string) => {
-    const path = decodeURIComponent(
-      input
-        .replace(/^https?:\/\/[^/]+/, "")
-        // The page asks for every revision and a baseline; the fixtures answer per component.
-        .replace(/(\/comparison)\?.*/, (query, end) =>
-          query.includes("revX") ? query : end,
+    const { pathname, searchParams } = new URL(input);
+    if (pathname.endsWith("/comparison") && pathname in api) {
+      const revisions = searchParams.get("revisions");
+      requests.push(revisions);
+      if (revisions?.includes("revX"))
+        return Response.json(
+          { detail: "revision revX not found for component 1" },
+          { status: 400 },
+        );
+      const all = api[pathname] as ReturnType<typeof comparison>;
+      const asked = revisions?.split(",");
+      return Response.json({
+        ...all,
+        revisions: all.revisions.filter(
+          (entry) => !asked || asked.includes(entry.revision_label),
         ),
-    );
-    if (path.includes("revX"))
-      return Response.json(
-        { detail: "revision revX not found for component 1" },
-        { status: 400 },
-      );
+      });
+    }
+    const path = decodeURIComponent(input.replace(/^https?:\/\/[^/]+/, ""));
     return path in api
       ? Response.json(api[path])
       : new Response(null, { status: 404 });
@@ -163,10 +173,19 @@ it("switches the component when a grid row is clicked", async () => {
 it("puts the toggled revisions in the URL", async () => {
   renderAt("/compare?project=1");
   await screen.findByRole("row", { name: /^rev3/ });
+  expect(requests).toEqual(["rev1,rev2,rev3"]);
   fireEvent.click(screen.getByRole("button", { name: "rev2" }));
   expect(screen.getByTestId("search")).toHaveTextContent(
     "?project=1&revisions=rev1%2Crev3",
   );
+  // only the selected revisions are requested, and the metric table follows
+  await vi.waitFor(() =>
+    expect(
+      screen.queryByRole("row", { name: /^rev2/ }),
+    ).not.toBeInTheDocument(),
+  );
+  expect(requests.at(-1)).toBe("rev1,rev3");
+  expect(screen.getByRole("row", { name: /^rev3/ })).toBeVisible();
 });
 
 it("shows an empty state when no revision is selected", async () => {
@@ -233,8 +252,10 @@ it("overlays at most five revisions and disables the rest until one is freed", a
   expect(
     screen.getByText("Up to 5 revisions can be compared at once."),
   ).toBeVisible();
-  // only the overlay is capped: the metric table and the grid still list all seven
-  expect(screen.getAllByRole("link", { name: "View result" })).toHaveLength(7);
+  // the request and the metric table hold the selected five; the grid still lists all seven
+  expect(requests).toEqual(["rev3,rev4,rev5,rev6,rev7"]);
+  expect(screen.getAllByRole("link", { name: "View result" })).toHaveLength(5);
+  expect(screen.queryByRole("row", { name: /^rev2/ })).not.toBeInTheDocument();
   expect(
     within(screen.getByRole("row", { name: /^Bracket/ })).getAllByText(
       /PASS|FAIL/,
@@ -256,7 +277,9 @@ it("keeps the first five of a longer selection in the URL", async () => {
     "/compare?revisions=rev7,rev1,rev2,rev3,rev4,rev5,rev6",
     sevenRevisions,
   );
-  await screen.findByRole("row", { name: /^rev7/ });
+  await screen.findByRole("row", { name: /^rev5/ });
+  expect(requests).toEqual(["rev1,rev2,rev3,rev4,rev5"]);
+  expect(screen.queryByRole("row", { name: /^rev6/ })).not.toBeInTheDocument();
   expect(pressed()).toEqual([1, 2, 3, 4, 5]);
   expect(legend()).toEqual(["rev1", "rev2", "rev3", "rev4", "rev5"]);
   expect(toggle(6)).toBeDisabled();
